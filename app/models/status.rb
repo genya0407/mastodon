@@ -302,12 +302,16 @@ class Status < ApplicationRecord
   end
 
   def increment_emoji!(emoji)
+    return if emoji.blank?
+
     update_status_stat!(
       emoji_count: emoji_count.tap { |hash| hash[emoji] = (hash[emoji] || 0) + 1 }
     )
   end
 
   def decrement_emoji!(emoji)
+    return if emoji.blank?
+
     update_status_stat!(
       emoji_count: emoji_count
                      .tap { |hash| hash[emoji] = (hash[emoji] || 0) - 1 }
