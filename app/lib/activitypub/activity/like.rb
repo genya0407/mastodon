@@ -6,7 +6,8 @@ class ActivityPub::Activity::Like < ActivityPub::Activity
 
     return if original_status.nil? || !original_status.account.local? || delete_arrived_first?(@json['id']) || @account.favourited?(original_status)
 
-    favourite = original_status.favourites.create!(account: @account)
+    emoji = @json['content'] || @json.dig('tag', 0, 'icon', 'url')
+    favourite = original_status.favourites.create!(account: @account, emoji: emoji)
 
     LocalNotificationWorker.perform_async(original_status.account_id, favourite.id, 'Favourite', 'favourite')
     Trends.statuses.register(original_status)
