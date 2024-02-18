@@ -1,8 +1,6 @@
 name: Build container release images
 on:
-  push:
-    tags:
-      - '*'
+  workflow_dispatch: # Disabling this workflow. Instead, we use build-releases-custom.yml
 
 permissions:
   contents: read
