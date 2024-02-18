@@ -289,12 +289,30 @@ class Status < ApplicationRecord
     status_stat&.favourites_count || 0
   end
 
+  def emoji_count
+    status_stat&.emoji_count || {}
+  end
+
   def increment_count!(key)
     update_status_stat!(key => public_send(key) + 1)
   end
 
   def decrement_count!(key)
     update_status_stat!(key => [public_send(key) - 1, 0].max)
+  end
+
+  def increment_emoji!(emoji)
+    update_status_stat!(
+      emoji_count: emoji_count.tap { |hash| hash[emoji] = (hash[emoji] || 0) + 1 }
+    )
+  end
+
+  def decrement_emoji!(emoji)
+    update_status_stat!(
+      emoji_count: emoji_count
+                     .tap { |hash| hash[emoji] = (hash[emoji] || 0) - 1 }
+                     .tap { |hash| hash.delete(emoji) if hash[emoji] <= 0 }
+    )
   end
 
   def trendable?

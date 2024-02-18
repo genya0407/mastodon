@@ -74,7 +74,22 @@ class REST::StatusSerializer < ActiveModel::Serializer
   end
 
   def content
-    status_content_format(object)
+    original_content = Nokogiri::HTML::DocumentFragment.parse(status_content_format(object))
+    return original_content unless object.local?
+
+    Nokogiri::HTML::Builder.with(original_content) do |doc|
+      object.emoji_count.each do |emoji, count|
+        doc.span do
+          if emoji.start_with?('http')
+            doc.img(height: '30').src = emoji
+            doc.span(" (#{count})")
+          else
+            doc.span("#{emoji} (#{count})")
+          end
+        end
+      end
+    end
+    original_content.to_html
   end
 
   def url
