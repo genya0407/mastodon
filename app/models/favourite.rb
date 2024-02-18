@@ -9,6 +9,7 @@
 #  updated_at :datetime         not null
 #  account_id :bigint(8)        not null
 #  status_id  :bigint(8)        not null
+#  emoji      :text
 #
 
 class Favourite < ApplicationRecord
