@@ -42,6 +42,10 @@ RSpec.describe 'emoji reaction' do # rubocop:disable RSpec/DescribeClass
       it 'creates a favourite with emoji' do
         expect(status.favourites.first.emoji).to eq ':some_emoji:'
       end
+
+      it 'increment emoji_count' do
+        expect(status.emoji_count).to eq(':some_emoji:' => 1)
+      end
     end
 
     context 'when tag is present' do
@@ -53,6 +57,10 @@ RSpec.describe 'emoji reaction' do # rubocop:disable RSpec/DescribeClass
 
       it 'creates a favourite with emoji' do
         expect(status.favourites.first.emoji).to eq 'https://...'
+      end
+
+      it 'increment emoji_count' do
+        expect(status.emoji_count).to eq('https://...' => 1)
       end
     end
   end
