@@ -45,7 +45,7 @@ RSpec.describe 'emoji reaction' do # rubocop:disable RSpec/DescribeClass
     end
 
     context 'when tag is present' do
-      let(:json) { base_json.merge(tag: [{ icon: { url: 'https://...' } }]) }
+      let(:json) { base_json.merge(content: ':some_emoji:', tag: [{ icon: { url: 'https://...' } }]) }
 
       it 'creates a favourite from sender to status' do
         expect(sender.favourited?(status)).to be true
