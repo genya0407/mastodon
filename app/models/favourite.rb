@@ -36,12 +36,14 @@ class Favourite < ApplicationRecord
 
   def increment_cache_counters
     status&.increment_count!(:favourites_count)
+    status&.increment_emoji!(emoji)
   end
 
   def decrement_cache_counters
     return if association(:status).loaded? && status.marked_for_destruction?
 
     status&.decrement_count!(:favourites_count)
+    status&.decrement_emoji!(emoji)
   end
 
   def invalidate_cleanup_info

@@ -12,7 +12,7 @@ class Api::V1::Timelines::HomeController < Api::BaseController
     end
 
     render json: @statuses,
-           each_serializer: REST::StatusSerializer,
+           each_serializer: REST::ReactedStatusSerializer,
            relationships: @relationships,
            status: account_home_feed.regenerating? ? 206 : 200
   end

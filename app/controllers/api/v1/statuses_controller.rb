@@ -26,7 +26,7 @@ class Api::V1::StatusesController < Api::BaseController
   def show
     cache_if_unauthenticated!
     @status = cache_collection([@status], Status).first
-    render json: @status, serializer: REST::StatusSerializer
+    render json: @status, serializer: REST::ReactedStatusSerializer
   end
 
   def context
