@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-RSpec.describe 'emoji reaction' do
+RSpec.describe 'emoji reaction' do # rubocop:disable RSpec/DescribeClass
   let(:sender)    { Fabricate(:account) }
   let(:recipient) { Fabricate(:account) }
   let(:status)    { Fabricate(:status, account: recipient) }
@@ -45,7 +45,7 @@ RSpec.describe 'emoji reaction' do
     end
 
     context 'when tag is present' do
-      let(:json) { base_json.merge(tag: [{ icon: { url: 'https://...' } }] ) }
+      let(:json) { base_json.merge(tag: [{ icon: { url: 'https://...' } }]) }
 
       it 'creates a favourite from sender to status' do
         expect(sender.favourited?(status)).to be true
