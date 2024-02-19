@@ -87,6 +87,8 @@ class ActivityPub::Activity::Create < ActivityPub::Activity
       attach_tags(@status)
 
       if like_a_spam?
+        Rails.logger.warn { "Spam blocked: #{@status.account.acct.inspect} | #{@status.text.inspect}" }
+
         @status = nil
         raise ActiveRecord::Rollback
       end
