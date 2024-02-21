@@ -11,7 +11,7 @@ class REST::ReactedStatusSerializer < REST::StatusSerializer
         object.emoji_count.each do |emoji, count|
           doc.span do
             if emoji.start_with?('http')
-              doc.img(height: '30').src = Rails.cache.fetch("reacted_status_serializer:image:#{Digest::MD5.hexdigest(emoji)}", expires_in: 24.hour) do
+              doc.img(height: '30').src = Rails.cache.fetch("reacted_status_serializer:image:#{Digest::MD5.hexdigest(emoji)}", expires_in: 24.hours) do
                 base64 = Base64.strict_encode64(Net::HTTP.get_response(URI.parse(emoji)).body)
                 "data:image/png;base64,#{base64}"
               end
