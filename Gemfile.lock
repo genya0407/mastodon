@@ -687,6 +687,7 @@ GEM
       rubyzip (>= 1.2.2, < 3.0)
       websocket (~> 1.0)
     semantic_range (3.0.0)
+    server-starter (0.3.2)
     sidekiq (6.5.12)
       connection_pool (>= 2.2.5, < 3)
       rack (~> 2.0)
@@ -922,6 +923,7 @@ DEPENDENCIES
   sanitize (~> 6.0)
   scenic (~> 1.7)
   selenium-webdriver
+  server-starter
   sidekiq (~> 6.5)
   sidekiq-bulk (~> 0.2.0)
   sidekiq-scheduler (~> 5.0)
