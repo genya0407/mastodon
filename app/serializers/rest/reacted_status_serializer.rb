@@ -6,6 +6,7 @@ class REST::ReactedStatusSerializer < REST::StatusSerializer
     return original_content if !object.local? || object.emoji_count.empty?
 
     parsed_original_content = Nokogiri::HTML::DocumentFragment.parse(original_content)
+    Rails.logger.warn("test log hohho")
     Nokogiri::HTML::Builder.with(parsed_original_content) do |doc|
       doc.p do
         object.emoji_count.each do |emoji, count|
