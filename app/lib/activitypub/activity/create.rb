@@ -49,6 +49,25 @@ class ActivityPub::Activity::Create < ActivityPub::Activity
   def create_status
     return reject_payload! if unsupported_object_type? || non_matching_uri_hosts?(@account.uri, object_uri) || tombstone_exists? || !related_to_local_activity?
 
+    begin
+      quote_url = @json.dig('object', 'quoteUrl')
+      if quote_url
+        quoted_object = ActivityPub::Dereferencer.new(quote_url, permitted_origin: quote_url, signature_actor: signed_fetch_actor).object
+        quoted_account = ActivityPub::FetchRemoteAccountService.new.call(quoted_object['attributedTo'])
+        quote_json = {
+          'id' => "#{quoted_object['id']}/activity",
+          'actor' => quoted_object['attributedTo'],
+          'type' => 'Create',
+          'object' => quoted_object,
+        }
+        quoted_status = self.class.new(quote_json, quoted_account).perform
+        status_local_uri = "https://#{ENV.fetch('LOCAL_DOMAIN')}/@#{quoted_status.account.acct}/#{quoted_status.id}"
+        @json['object']['content'] = @json['object']['content'].gsub(quote_url, status_local_uri)
+      end
+    rescue => e
+      Rails.logger.warn("#{e}: #{JSON.generate(@json)}")
+    end
+
     with_redis_lock("create:#{object_uri}") do
       return if delete_arrived_first?(object_uri) || poll_vote?
 
