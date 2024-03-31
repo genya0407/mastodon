@@ -164,7 +164,9 @@ RSpec.describe 'Create with quoteUrl' do # rubocop:disable RSpec/DescribeClass
       quoting_status_text = quoting_account.statuses.first.text
       expect(quoting_status_text).to match(/comment-on-quote/)
       # cb6e6126.ngrok.io is LOCAL_DOMAIN on test environment
-      expect(quoting_status_text).to match %r{https://cb6e6126.ngrok.io/@quoted-user@social.some-quoted-server.com/#{fetch_quoted_account.statuses.first.id}}
+      rewrote_link = "https://cb6e6126.ngrok.io/@quoted-user@social.some-quoted-server.com/#{fetch_quoted_account.statuses.first.id}"
+      original_link = 'https://social.some-quoted-server.com/users/quoted-user/statuses/quoted-status-id'
+      expect(quoting_status_text).to match %r{<a href="#{rewrote_link}">#{original_link}</a>}
     end
   end
 end

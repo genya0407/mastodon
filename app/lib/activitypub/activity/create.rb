@@ -62,7 +62,7 @@ class ActivityPub::Activity::Create < ActivityPub::Activity
         }
         quoted_status = self.class.new(quote_json, quoted_account).perform
         status_local_uri = "https://#{ENV.fetch('LOCAL_DOMAIN')}/@#{quoted_status.account.acct}/#{quoted_status.id}"
-        @json['object']['content'] = @json['object']['content'].gsub(quote_url, status_local_uri)
+        @json['object']['content'] = @json['object']['content'].gsub(%(href="#{quote_url}"), %(href="#{status_local_uri}"))
       end
     rescue => e
       Rails.logger.warn("#{e}: #{JSON.generate(@json)}")
