@@ -61,7 +61,7 @@ class ActivityPub::Activity::Create < ActivityPub::Activity
           'object' => quoted_object,
         }
         quoted_status = self.class.new(quote_json, quoted_account).perform
-        status_local_uri = "/@#{quoted_status.account.acct}/#{quoted_status.id}"
+        status_local_uri = "https://#{ENV.fetch('LOCAL_DOMAIN')}/@#{quoted_status.account.acct}/#{quoted_status.id}"
         @json['object']['content'] = @json['object']['content'].gsub(quote_url, status_local_uri)
       end
     rescue => e
