@@ -18,7 +18,7 @@ class TranslationService::DeepL < TranslationService
   end
 
   def languages
-    source_languages = [nil] + fetch_languages('source')
+    source_languages = [nil] + fetch_languages('source') - %w(en)
 
     # In DeepL, EN and PT are deprecated in favor of EN-GB/EN-US and PT-BR/PT-PT, so
     # they are supported but not returned by the API.
