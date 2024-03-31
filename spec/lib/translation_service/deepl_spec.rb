@@ -60,16 +60,16 @@ RSpec.describe TranslationService::DeepL do
 
   describe '#languages' do
     it 'returns source languages' do
-      expect(service.languages.keys).to eq [nil, 'en', 'uk']
+      expect(service.languages.keys).to eq ['uk']
     end
 
     it 'returns target languages for each source language' do
-      expect(service.languages['en']).to eq %w(pt en-GB zh)
+      expect(service.languages['en']).to be_nil
       expect(service.languages['uk']).to eq %w(en pt en-GB zh)
     end
 
     it 'returns target languages for auto-detection' do
-      expect(service.languages[nil]).to eq %w(en pt en-GB zh)
+      expect(service.languages[nil]).to be_nil
     end
   end
 
