@@ -22,7 +22,7 @@ class REST::ReactedStatusSerializer < REST::StatusSerializer
     parsed_original_content.to_html
   end
 
-  def to_h
+  def serializable_hash(*)
     super.tap do |hash|
       hash[:emojis] += object.emoji_count.map.with_index do |(emoji, _), i|
         next unless emoji.start_with?('http')
