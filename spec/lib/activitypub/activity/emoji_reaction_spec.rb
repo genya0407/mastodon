@@ -17,6 +17,10 @@ RSpec.describe 'emoji reaction' do # rubocop:disable RSpec/DescribeClass
     }.with_indifferent_access
   end
 
+  before do
+    stub_request(:get, 'http://example.com/emoji.png').to_return(body: Rails.root.join('spec', 'fixtures', 'files', 'emojo.png').read)
+  end
+
   describe '#perform' do
     subject { ActivityPub::Activity::Like.new(json, sender) }
 
@@ -33,7 +37,23 @@ RSpec.describe 'emoji reaction' do # rubocop:disable RSpec/DescribeClass
     end
 
     context 'when content is present' do
-      let(:json) { base_json.merge(content: ':some_emoji:') }
+      let(:json) { base_json.merge(content: '☃') }
+
+      it 'creates a favourite from sender to status' do
+        expect(sender.favourited?(status)).to be true
+      end
+
+      it 'creates a favourite with emoji' do
+        expect(status.favourites.first.emoji).to eq '☃'
+      end
+
+      it 'increment emoji_count' do
+        expect(status.emoji_count).to eq('☃' => 1)
+      end
+    end
+
+    context 'when tag is present' do
+      let(:json) { base_json.merge(content: ':some_emoji:', tag: [{ icon: { url: 'http://example.com/emoji.png' } }]) }
 
       it 'creates a favourite from sender to status' do
         expect(sender.favourited?(status)).to be true
@@ -46,21 +66,9 @@ RSpec.describe 'emoji reaction' do # rubocop:disable RSpec/DescribeClass
       it 'increment emoji_count' do
         expect(status.emoji_count).to eq(':some_emoji:' => 1)
       end
-    end
 
-    context 'when tag is present' do
-      let(:json) { base_json.merge(content: ':some_emoji:', tag: [{ icon: { url: 'https://...' } }]) }
-
-      it 'creates a favourite from sender to status' do
-        expect(sender.favourited?(status)).to be true
-      end
-
-      it 'creates a favourite with emoji' do
-        expect(status.favourites.first.emoji).to eq 'https://...'
-      end
-
-      it 'increment emoji_count' do
-        expect(status.emoji_count).to eq('https://...' => 1)
+      it 'creates CustomEmoji' do
+        expect(status.favourites.first.custom_emoji.image_remote_url).to eq 'http://example.com/emoji.png'
       end
     end
   end
