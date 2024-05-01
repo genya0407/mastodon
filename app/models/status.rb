@@ -264,8 +264,14 @@ class Status < ApplicationRecord
 
     fields  = [spoiler_text, text]
     fields += preloadable_poll.options unless preloadable_poll.nil?
+    emojis_in_text = CustomEmoji.from_text(fields.join(' '), account.domain)
+    emojis_in_reaction = if emoji_count.keys.any? { |emoji| emoji.start_with?(':') }
+                           favourites.preload(:custom_emoji).map(&:custom_emoji).to_a
+                         else
+                           []
+                         end
 
-    @emojis = CustomEmoji.from_text(fields.join(' '), account.domain)
+    @emojis = (emojis_in_text + emojis_in_reaction).uniq
   end
 
   def ordered_media_attachments

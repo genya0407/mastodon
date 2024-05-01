@@ -19,6 +19,7 @@ class Favourite < ApplicationRecord
 
   belongs_to :account, inverse_of: :favourites
   belongs_to :status,  inverse_of: :favourites
+  belongs_to :custom_emoji, dependent: nil, optional: true
 
   has_one :notification, as: :activity, dependent: :destroy
 
