@@ -266,7 +266,7 @@ class Status < ApplicationRecord
     fields += preloadable_poll.options unless preloadable_poll.nil?
     emojis_in_text = CustomEmoji.from_text(fields.join(' '), account.domain)
     emojis_in_reaction = if emoji_count.keys.any? { |emoji| emoji.start_with?(':') }
-                           favourites.preload(:custom_emoji).map(&:custom_emoji).to_a
+                           favourites.preload(:custom_emoji).map(&:custom_emoji).to_a.compact
                          else
                            []
                          end
