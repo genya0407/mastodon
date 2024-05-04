@@ -74,5 +74,18 @@ RSpec.describe 'Status#emojis extension for emoji reaction' do # rubocop:disable
         expect(subject.emojis).to eq []
       end
     end
+
+    context 'with favourite without reaction and favourite with reaction' do
+      let(:text) { 'some text without emoji' }
+
+      before do
+        Fabricate(:favourite, account: bob, status: subject)
+        Fabricate(:favourite, account: alice, status: subject, emoji: ':emoji_alice:', custom_emoji: emoji_alice)
+      end
+
+      it 'returns favourite with reaction' do
+        expect(subject.emojis).to eq [emoji_alice]
+      end
+    end
   end
 end
