@@ -38,7 +38,9 @@ class NodeInfo::Serializer < ActiveModel::Serializer
   end
 
   def metadata
-    {}
+    {
+      features: %w(emoji_reaction),
+    }
   end
 
   private
