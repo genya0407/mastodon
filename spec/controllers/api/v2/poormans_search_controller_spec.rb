@@ -19,7 +19,7 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
       end
 
       context 'when query is empty' do
-        it 'returns http success' do
+        it 'returns http 400' do
           get :index, params: { q: '' }
 
           expect(response).to have_http_status(400)
@@ -33,7 +33,7 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
           Fabricate(:status, text: 'text')
         end
 
-        it 'returns http success' do
+        it 'returns status' do
           get :index, params: { q: 'test' }
 
           expect(body_as_json[:statuses].pluck(:id)).to eq [status_relevant.id.to_s]
@@ -48,10 +48,41 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
           Fabricate(:status, text: 'あああ')
         end
 
-        it 'returns http success' do
+        it 'returns status' do
           get :index, params: { q: 'test　あああ' }
 
           expect(body_as_json[:statuses].pluck(:id)).to eq [status_relevant.id.to_s]
+        end
+      end
+
+      context 'when there are some statuses with different users' do
+        let!(:alice) { Fabricate(:account, username: 'alice') }
+        let!(:bob) { Fabricate(:account, username: 'bob', domain: 'example.com') }
+        let!(:alice_status) { Fabricate(:status, text: 'test', account: alice) }
+        let!(:bob_status) { Fabricate(:status, text: 'test', account: bob) }
+
+        it 'returns status for alice' do
+          get :index, params: { q: 'es from:alice' }
+
+          expect(body_as_json[:statuses].pluck(:id)).to eq [alice_status.id.to_s]
+        end
+
+        it 'returns status for @alice' do
+          get :index, params: { q: 'es from:@alice' }
+
+          expect(body_as_json[:statuses].pluck(:id)).to eq [alice_status.id.to_s]
+        end
+
+        it 'returns status for bob@example.com' do
+          get :index, params: { q: 'es from:bob@example.com' }
+
+          expect(body_as_json[:statuses].pluck(:id)).to eq [bob_status.id.to_s]
+        end
+
+        it 'returns status for @bob@example.com' do
+          get :index, params: { q: 'es from:@bob@example.com' }
+
+          expect(body_as_json[:statuses].pluck(:id)).to eq [bob_status.id.to_s]
         end
       end
     end

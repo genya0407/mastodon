@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 class PoormansStatusesSearchService < BaseService
+  include AccountFinderConcern
+
   def self.enabled?
     true
   end
@@ -18,14 +20,16 @@ class PoormansStatusesSearchService < BaseService
   private
 
   def status_search_results
-    results = @query.split(/[ 　]/).reduce(
-      Status
-        .where(
-          {
-            account_id: @options[:account_id],
-            id: (@options[:min_id]&.to_i)..(@options[:max_id]&.to_i),
-          }.compact
-        )
+    raw_words = @query.split(/[ 　]/)
+    account_id = raw_words.find { |word| word.start_with?('from:') }&.then do |from|
+      acct = from.delete_prefix('from:').delete_prefix('@')
+      username, domain = acct.split('@')
+      self.class.find_remote(username, domain)&.id
+    end
+    words = raw_words.reject { |word| word.start_with?('from:') }
+
+    results = words.reduce(
+      Status.where({ account_id: account_id }.compact)
     ) do |relation, word|
       relation.where('text LIKE ?', "%#{Status.sanitize_sql_like(word)}%")
     end.order(id: :desc).limit(@limit).offset(@offset)
