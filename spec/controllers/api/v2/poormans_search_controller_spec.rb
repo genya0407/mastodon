@@ -18,6 +18,14 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
         allow(controller).to receive(:doorkeeper_token) { token }
       end
 
+      context 'when query is empty' do
+        it 'returns http success' do
+          get :index, params: { q: '' }
+
+          expect(response).to have_http_status(400)
+        end
+      end
+
       context 'when there are some statuses' do
         let!(:status_relevant) { Fabricate(:status, text: 'test') }
 
