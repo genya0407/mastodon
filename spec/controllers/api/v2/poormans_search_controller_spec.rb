@@ -85,6 +85,29 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
           expect(body_as_json[:statuses].pluck(:id)).to eq [bob_status.id.to_s]
         end
       end
+
+      context 'when there are private status and public status' do
+        before do
+          Fabricate(:status, visibility: :public, text: 'word 1')
+          Fabricate(:status, visibility: :private, text: 'word 2')
+          Fabricate(:status, visibility: :public, text: 'word 3')
+          Fabricate(:status, visibility: :public, text: 'word 4')
+          Fabricate(:status, visibility: :private, text: 'word 5')
+          Fabricate(:status, visibility: :public, text: 'word 6')
+        end
+
+        it 'returns word 6, 4, 3 for the first page' do
+          get :index, params: { q: 'word', limit: 3 }
+
+          expect(body_as_json[:statuses].pluck(:content)).to eq(['word 6', 'word 4', 'word 3'].map { |w| "<p>#{w}</p>" })
+        end
+
+        it 'returns word 3, 1 for the second page' do
+          get :index, params: { q: 'word', limit: 3, offset: 2, type: :statuses }
+
+          expect(body_as_json[:statuses].pluck(:content)).to eq(['word 3', 'word 1'].map { |w| "<p>#{w}</p>" })
+        end
+      end
     end
   end
 
