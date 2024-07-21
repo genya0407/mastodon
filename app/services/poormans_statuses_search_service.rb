@@ -29,7 +29,7 @@ class PoormansStatusesSearchService < BaseService
     words = raw_words.reject { |word| word.start_with?('from:') }
 
     results = words.reduce(
-      Status.where({ account_id: account_id }.compact)
+      Status.where({ account_id: account_id, visibility: :public }.compact)
     ) do |relation, word|
       relation.where('text LIKE ?', "%#{Status.sanitize_sql_like(word)}%")
     end.order(id: :desc).limit(@limit).offset(@offset)
