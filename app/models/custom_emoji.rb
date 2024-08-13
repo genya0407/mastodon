@@ -28,9 +28,7 @@ class CustomEmoji < ApplicationRecord
 
   SHORTCODE_RE_FRAGMENT = '[a-zA-Z0-9_]{2,}'
 
-  SCAN_RE = /(?<=[^a-zA-Z0-9:]|\n|^)
-    :(#{SHORTCODE_RE_FRAGMENT}):
-    (?=[^a-zA-Z0-9:]|$)/x
+  SCAN_RE = /:(#{SHORTCODE_RE_FRAGMENT}):/
   SHORTCODE_ONLY_RE = /\A#{SHORTCODE_RE_FRAGMENT}\z/
 
   IMAGE_MIME_TYPES = %w(image/png image/gif image/webp).freeze
