@@ -283,7 +283,7 @@ class Status < ApplicationRecord
                            []
                          end
 
-    @emojis = (emojis_in_text + emojis_in_reaction).uniq
+    @emojis = (emojis_in_text + emojis_in_reaction + account.emojis).uniq
   end
 
   def ordered_media_attachments
