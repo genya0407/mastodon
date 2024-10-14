@@ -788,7 +788,6 @@ GEM
       rubyzip (>= 1.2.2, < 3.0)
       websocket (~> 1.0)
     semantic_range (3.0.0)
-    server-starter (0.3.2)
     shoulda-matchers (6.4.0)
       activesupport (>= 5.2.0)
     sidekiq (6.5.12)
@@ -1034,7 +1033,6 @@ DEPENDENCIES
   sanitize (~> 6.0)
   scenic (~> 1.7)
   selenium-webdriver
-  server-starter
   shoulda-matchers
   sidekiq (~> 6.5)
   sidekiq-bulk (~> 0.2.0)
