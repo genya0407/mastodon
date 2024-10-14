@@ -450,11 +450,9 @@ class ActivityPub::Activity::Create < ActivityPub::Activity
   SPAM_FILTER_MINIMUM_CREATE_DAYS = ENV.fetch('SPAM_FILTER_MINIMUM_CREATE_DAYS', 1).to_i
   SPAM_FILTER_MINIMUM_MENTIONS = ENV.fetch('SPAM_FILTER_MINIMUM_MENTIONS', 1).to_i
   def like_a_spam?
-    (
-      !@status.account.local? &&
+    !@status.account.local? &&
       @status.account.followers_count <= SPAM_FILTER_MINIMUM_FOLLOWERS &&
       @status.account.created_at > SPAM_FILTER_MINIMUM_CREATE_DAYS.day.ago &&
       @mentions.count > SPAM_FILTER_MINIMUM_MENTIONS
-    )
   end
 end
