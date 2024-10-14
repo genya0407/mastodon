@@ -2,8 +2,10 @@
 
 require 'rails_helper'
 
-RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
-  render_views
+RSpec.describe 'poormans search' do # ::FilePath
+  let(:user)  { Fabricate(:user) }
+  let(:token) { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: 'read:search') }
+  let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
   before do
     allow(Chewy).to receive(:enabled?).and_return(false)
@@ -11,16 +13,9 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
 
   describe 'status search' do
     describe 'GET #index' do
-      let(:user)  { Fabricate(:user) }
-      let(:token) { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: 'read:search') }
-
-      before do
-        allow(controller).to receive(:doorkeeper_token) { token }
-      end
-
       context 'when query is empty' do
         it 'returns http 400' do
-          get :index, params: { q: '' }
+          get '/api/v2/search', headers: headers, params: { q: '' }
 
           expect(response).to have_http_status(400)
         end
@@ -34,9 +29,9 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
         end
 
         it 'returns status' do
-          get :index, params: { q: 'test' }
+          get '/api/v2/search', headers: headers, params: { q: 'test' }
 
-          expect(body_as_json[:statuses].pluck(:id)).to eq [status_relevant.id.to_s]
+          expect(response.parsed_body[:statuses].pluck(:id)).to eq [status_relevant.id.to_s]
         end
       end
 
@@ -49,9 +44,9 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
         end
 
         it 'returns status' do
-          get :index, params: { q: 'test　あああ' }
+          get '/api/v2/search', headers: headers, params: { q: 'test　あああ' }
 
-          expect(body_as_json[:statuses].pluck(:id)).to eq [status_relevant.id.to_s]
+          expect(response.parsed_body[:statuses].pluck(:id)).to eq [status_relevant.id.to_s]
         end
       end
 
@@ -62,27 +57,27 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
         let!(:bob_status) { Fabricate(:status, text: 'test', account: bob) }
 
         it 'returns status for alice' do
-          get :index, params: { q: 'es from:alice' }
+          get '/api/v2/search', headers: headers, params: { q: 'es from:alice' }
 
-          expect(body_as_json[:statuses].pluck(:id)).to eq [alice_status.id.to_s]
+          expect(response.parsed_body[:statuses].pluck(:id)).to eq [alice_status.id.to_s]
         end
 
         it 'returns status for @alice' do
-          get :index, params: { q: 'es from:@alice' }
+          get '/api/v2/search', headers: headers, params: { q: 'es from:@alice' }
 
-          expect(body_as_json[:statuses].pluck(:id)).to eq [alice_status.id.to_s]
+          expect(response.parsed_body[:statuses].pluck(:id)).to eq [alice_status.id.to_s]
         end
 
         it 'returns status for bob@example.com' do
-          get :index, params: { q: 'es from:bob@example.com' }
+          get '/api/v2/search', headers: headers, params: { q: 'es from:bob@example.com' }
 
-          expect(body_as_json[:statuses].pluck(:id)).to eq [bob_status.id.to_s]
+          expect(response.parsed_body[:statuses].pluck(:id)).to eq [bob_status.id.to_s]
         end
 
         it 'returns status for @bob@example.com' do
-          get :index, params: { q: 'es from:@bob@example.com' }
+          get '/api/v2/search', headers: headers, params: { q: 'es from:@bob@example.com' }
 
-          expect(body_as_json[:statuses].pluck(:id)).to eq [bob_status.id.to_s]
+          expect(response.parsed_body[:statuses].pluck(:id)).to eq [bob_status.id.to_s]
         end
       end
 
@@ -97,102 +92,15 @@ RSpec.describe Api::V2::SearchController do # rubocop:disable RSpec::FilePath
         end
 
         it 'returns word 6, 4, 3 for the first page' do
-          get :index, params: { q: 'word', limit: 3 }
+          get '/api/v2/search', headers: headers, params: { q: 'word', limit: 3 }
 
-          expect(body_as_json[:statuses].pluck(:content)).to eq(['word 6', 'word 4', 'word 3'].map { |w| "<p>#{w}</p>" })
+          expect(response.parsed_body[:statuses].pluck(:content)).to eq(['word 6', 'word 4', 'word 3'].map { |w| "<p>#{w}</p>" })
         end
 
         it 'returns word 3, 1 for the second page' do
-          get :index, params: { q: 'word', limit: 3, offset: 2, type: :statuses }
+          get '/api/v2/search', headers: headers, params: { q: 'word', limit: 3, offset: 2, type: :statuses }
 
-          expect(body_as_json[:statuses].pluck(:content)).to eq(['word 3', 'word 1'].map { |w| "<p>#{w}</p>" })
-        end
-      end
-    end
-  end
-
-  # Followings are copied from search_controller_spec.rb
-  context 'with token' do
-    let(:user)  { Fabricate(:user) }
-    let(:token) { Fabricate(:accessible_access_token, resource_owner_id: user.id, scopes: 'read:search') }
-
-    before do
-      allow(controller).to receive(:doorkeeper_token) { token }
-    end
-
-    describe 'GET #index' do
-      let!(:bob)   { Fabricate(:account, username: 'bob_test') }
-      let!(:ana)   { Fabricate(:account, username: 'ana_test') }
-      let!(:tom)   { Fabricate(:account, username: 'tom_test') }
-      let(:params) { { q: 'test' } }
-
-      it 'returns http success' do
-        get :index, params: params
-
-        expect(response).to have_http_status(200)
-      end
-
-      context 'when searching accounts' do
-        let(:params) { { q: 'test', type: 'accounts' } }
-
-        it 'returns all matching accounts' do
-          get :index, params: params
-
-          expect(body_as_json[:accounts].pluck(:id)).to contain_exactly(bob.id.to_s, ana.id.to_s, tom.id.to_s)
-        end
-
-        context 'with following=true' do
-          let(:params) { { q: 'test', type: 'accounts', following: 'true' } }
-
-          before do
-            user.account.follow!(ana)
-          end
-
-          it 'returns only the followed accounts' do
-            get :index, params: params
-
-            expect(body_as_json[:accounts].pluck(:id)).to contain_exactly(ana.id.to_s)
-          end
-        end
-      end
-    end
-  end
-
-  context 'without token' do
-    describe 'GET #index' do
-      before do
-        get :index, params: search_params
-      end
-
-      context 'with a `q` shorter than 5 characters' do
-        let(:search_params) { { q: 'test' } }
-
-        it 'returns http success' do
-          expect(response).to have_http_status(200)
-        end
-      end
-
-      context 'with a `q` equal to or longer than 5 characters' do
-        let(:search_params) { { q: 'test1' } }
-
-        it 'returns http success' do
-          expect(response).to have_http_status(200)
-        end
-
-        context 'with truthy `resolve`' do
-          let(:search_params) { { q: 'test1', resolve: '1' } }
-
-          it 'returns http unauthorized' do
-            expect(response).to have_http_status(401)
-          end
-        end
-
-        context 'with `offset`' do
-          let(:search_params) { { q: 'test1', offset: 1 } }
-
-          it 'returns http unauthorized' do
-            expect(response).to have_http_status(401)
-          end
+          expect(response.parsed_body[:statuses].pluck(:content)).to eq(['word 3', 'word 1'].map { |w| "<p>#{w}</p>" })
         end
       end
     end
