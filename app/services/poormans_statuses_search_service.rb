@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class PoormansStatusesSearchService < BaseService
-  include AccountFinderConcern
+  include Account::FinderConcern
 
   def self.enabled?
     true
