@@ -119,7 +119,7 @@ RSpec.describe 'Create with quoteUrl' do # rubocop:disable RSpec/DescribeClass
       headers: { 'Content-Type': 'application/activity+json' }
     )
     stub_request(:get, "https://#{domain}/.well-known/webfinger?resource=acct:#{username}@#{domain}").to_return(
-      body: Oj.dump({ subject: "acct:#{username}@#{domain}", links: [{ rel: 'self', href: url }] }),
+      body: Oj.dump({ subject: "acct:#{username}@#{domain}", links: [{ rel: 'self', href: url, type: 'application/activity+json' }] }),
       headers: { 'Content-Type': 'application/jrd+json' }
     )
   end
