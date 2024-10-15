@@ -3,7 +3,7 @@ on:
   push:
     tags:
       - '*genya0407*'
-  workflow_call:
+  workflow_dispatch:
     inputs:
       platforms:
         required: true
