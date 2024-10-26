@@ -7,7 +7,7 @@ class BaseService
   include RoutingHelper
 
   module Trace
-    def call(*)
+    def call(...)
       MastodonOTELTracer.in_span(self.class.name) do
         super
       end
