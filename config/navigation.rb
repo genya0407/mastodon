@@ -73,6 +73,7 @@ SimpleNavigation::Configuration.run do |navigation|
 
     n.item :sidekiq, safe_join([material_symbol('diamond'), 'Sidekiq']), sidekiq_path, link_html: { target: 'sidekiq' }, if: -> { current_user.can?(:view_devops) }
     n.item :pghero, safe_join([material_symbol('database'), 'PgHero']), pghero_path, link_html: { target: 'pghero' }, if: -> { current_user.can?(:view_devops) }
+    n.item :jobs, safe_join([material_symbol('diamond'), 'MissionControl-Jobs']), jobs_path, link_html: { target: 'jobs' }, if: -> { current_user.can?(:view_devops) }
     n.item :logout, safe_join([material_symbol('logout'), t('auth.logout')]), destroy_user_session_path, link_html: { 'data-method' => 'delete' }
   end
 end

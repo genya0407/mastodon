@@ -123,5 +123,7 @@ module Mastodon
       Devise::FailureApp.include AbstractController::Callbacks
       Devise::FailureApp.include Localized
     end
+
+    config.mission_control.jobs.http_basic_auth_enabled = false
   end
 end
