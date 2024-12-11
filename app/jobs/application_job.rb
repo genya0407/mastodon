@@ -6,6 +6,7 @@ class ApplicationJob < ActiveJob::Base
 
   # Most jobs are safe to ignore if the underlying records are no longer available
   # discard_on ActiveJob::DeserializationError
+  retry_on StandardError
 
   around_perform do |_job, block|
     Mastodon::SidekiqMiddleware.new.call(&block)
