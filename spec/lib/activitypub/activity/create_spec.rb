@@ -103,7 +103,7 @@ RSpec.describe ActivityPub::Activity::Create do
       described_class.new(activity_for_object(reply_json), sender, delivery: true).perform
 
       # NOTE: Refering explicitly to the workers is a bit awkward
-      DistributionWorker.drain
+      perform_enqueued_jobs(only: DistributionJob)
       FeedInsertWorker.drain
 
       # …it creates a status with an unknown parent
@@ -121,6 +121,7 @@ RSpec.describe ActivityPub::Activity::Create do
       described_class.new(activity_for_object(object_json), sender, delivery: true).perform
 
       Sidekiq::Worker.drain_all
+      perform_enqueued_jobs
 
       # …it creates a status and insert it into timelines
       parent = Status.find_by(uri: object_json[:id])
