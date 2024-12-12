@@ -119,7 +119,7 @@ class PostStatusService < BaseService
     process_hashtags_service.call(@status)
     Trends.tags.register(@status)
     LinkCrawlJob.perform_later(@status.id)
-    DistributionWorker.perform_async(@status.id)
+    DistributionJob.perform_later(@status.id)
     ActivityPub::DistributionWorker.perform_async(@status.id)
     PollExpirationNotifyWorker.perform_at(@status.poll.expires_at, @status.poll.id) if @status.poll
   end
