@@ -2,3 +2,6 @@ production:
   periodic_cleanup:
     command: 'SolidQueue::Job.clear_finished_in_batches(finished_before: 3.hours.ago)'
     schedule: every hour
+  periodic_retry:
+    command: 'SolidQueue::FailedExecution.limit(10).find_each(&:retry)'
+    schedule: '*/10 * * * *'
