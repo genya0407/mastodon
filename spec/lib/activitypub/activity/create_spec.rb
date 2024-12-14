@@ -95,7 +95,7 @@ RSpec.describe ActivityPub::Activity::Create do
       follower.follow!(sender)
     end
 
-    it 'correctly processes posts and inserts them in timelines', :aggregate_failures do
+    it 'correctly processes posts and inserts them in timelines', :aggregate_failures do # rubocop:disable RSpec/ExampleLength
       # Simulate a temporary failure preventing from fetching the parent post
       stub_request(:get, object_json[:id]).to_return(status: 500)
 
@@ -120,7 +120,9 @@ RSpec.describe ActivityPub::Activity::Create do
       # When receiving the parent…
       described_class.new(activity_for_object(object_json), sender, delivery: true).perform
 
-      perform_enqueued_jobs
+      perform_enqueued_jobs(only: DistributionJob)
+      Sidekiq::Worker.drain_all
+      perform_enqueued_jobs(only: DistributionJob)
       Sidekiq::Worker.drain_all
 
       # …it creates a status and insert it into timelines
