@@ -120,8 +120,8 @@ RSpec.describe ActivityPub::Activity::Create do
       # When receiving the parent…
       described_class.new(activity_for_object(object_json), sender, delivery: true).perform
 
-      Sidekiq::Worker.drain_all
       perform_enqueued_jobs
+      Sidekiq::Worker.drain_all
 
       # …it creates a status and insert it into timelines
       parent = Status.find_by(uri: object_json[:id])
