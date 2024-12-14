@@ -204,14 +204,14 @@ RSpec.describe PostStatusService do
   end
 
   it 'gets distributed' do
-    allow(DistributionWorker).to receive(:perform_async)
+    allow(DistributionJob).to receive(:perform_later)
     allow(ActivityPub::DistributionWorker).to receive(:perform_async)
 
     account = Fabricate(:account)
 
     status = subject.call(account, text: 'test status update')
 
-    expect(DistributionWorker).to have_received(:perform_async).with(status.id)
+    expect(DistributionJob).to have_received(:perform_later).with(status.id)
     expect(ActivityPub::DistributionWorker).to have_received(:perform_async).with(status.id)
   end
 
