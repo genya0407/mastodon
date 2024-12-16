@@ -3,7 +3,6 @@
 class FeedInsertJob < ApplicationJob
   queue_as :default
 
-  include Sidekiq::Worker
   include DatabaseHelper
 
   def self.push_bulk(elems)
