@@ -84,8 +84,16 @@ module ApplicationJobTesting
     super
     ApplicationJobTesting.blk&.call
   end
+
+  module ActiveJobExt
+    def perform_all_later(...)
+      super
+      ApplicationJobTesting.blk&.call
+    end
+  end
 end
 ApplicationJob.singleton_class.prepend(ApplicationJobTesting)
+ActiveJob.singleton_class.prepend(ApplicationJobTesting::ActiveJobExt)
 
 RSpec.configure do |config|
   # By default, skip specs that need full JS browser

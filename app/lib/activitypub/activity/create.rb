@@ -170,7 +170,7 @@ class ActivityPub::Activity::Create < ActivityPub::Activity
 
     return unless delivered_to_account.following?(@account)
 
-    FeedInsertWorker.perform_async(@status.id, delivered_to_account.id, 'home')
+    FeedInsertJob.perform_later(@status.id, delivered_to_account.id, 'home')
   end
 
   def delivered_to_account
