@@ -9,7 +9,7 @@ class FeedInsertJob < ApplicationJob
     jobs = elems.map do |elem|
       new(*yield(elem))
     end
-    perform_all_later(jobs)
+    ActiveJob.perform_all_later(jobs)
   end
 
   def perform(status_id, id, type = 'home', options = {})
