@@ -104,7 +104,7 @@ RSpec.describe ActivityPub::Activity::Create do
 
       # NOTE: Refering explicitly to the workers is a bit awkward
       perform_enqueued_jobs(only: DistributionJob)
-      FeedInsertWorker.drain
+      perform_enqueued_jobs(only: FeedInsertJob)
 
       # …it creates a status with an unknown parent
       reply = Status.find_by(uri: reply_json[:id])
@@ -120,10 +120,11 @@ RSpec.describe ActivityPub::Activity::Create do
       # When receiving the parent…
       described_class.new(activity_for_object(object_json), sender, delivery: true).perform
 
-      perform_enqueued_jobs(only: DistributionJob)
-      Sidekiq::Worker.drain_all
-      perform_enqueued_jobs(only: DistributionJob)
-      Sidekiq::Worker.drain_all
+      2.times do
+        perform_enqueued_jobs(only: DistributionJob)
+        perform_enqueued_jobs(only: FeedInsertJob)
+        Sidekiq::Worker.drain_all
+      end
 
       # …it creates a status and insert it into timelines
       parent = Status.find_by(uri: object_json[:id])
@@ -145,8 +146,8 @@ RSpec.describe ActivityPub::Activity::Create do
       described_class.new(activity_for_object(invalid_mention_json), sender, delivery: true).perform
 
       # NOTE: Refering explicitly to the workers is a bit awkward
-      DistributionWorker.drain
-      FeedInsertWorker.drain
+      perform_enqueued_jobs(only: DistributionJob)
+      perform_enqueued_jobs(only: FeedInsertJob)
 
       # …it creates a status
       status = Status.find_by(uri: invalid_mention_json[:id])
