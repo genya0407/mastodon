@@ -12,7 +12,7 @@ class ActivityPub::DistributePollUpdateWorker
 
     return unless @status.preloadable_poll
 
-    ActivityPub::DeliveryWorker.push_bulk(inboxes, limit: 1_000) do |inbox_url|
+    ActivityPub::DeliveryJob.push_bulk(inboxes, limit: 1_000) do |inbox_url|
       [payload, @account.id, inbox_url]
     end
 
@@ -47,7 +47,7 @@ class ActivityPub::DistributePollUpdateWorker
   end
 
   def relay!
-    ActivityPub::DeliveryWorker.push_bulk(Relay.enabled.pluck(:inbox_url)) do |inbox_url|
+    ActivityPub::DeliveryJob.push_bulk(Relay.enabled.pluck(:inbox_url)) do |inbox_url|
       [payload, @account.id, inbox_url]
     end
   end

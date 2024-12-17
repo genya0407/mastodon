@@ -41,7 +41,7 @@ class ActivityPub::SynchronizeFollowersService < BaseService
         # the Undo may not work with software that relies exclusively on
         # matching activity IDs and not the actor and target
         follow = Follow.new(account: expected_follower, target_account: @account)
-        ActivityPub::DeliveryWorker.perform_async(build_undo_follow_json(follow), follow.account_id, follow.target_account.inbox_url)
+        ActivityPub::DeliveryJob.perform_later(build_undo_follow_json(follow), follow.account_id, follow.target_account.inbox_url)
       end
     end
   end

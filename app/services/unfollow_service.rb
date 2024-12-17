@@ -49,11 +49,11 @@ class UnfollowService < BaseService
   end
 
   def create_notification(follow)
-    ActivityPub::DeliveryWorker.perform_async(build_json(follow), follow.account_id, follow.target_account.inbox_url)
+    ActivityPub::DeliveryJob.perform_later(build_json(follow), follow.account_id, follow.target_account.inbox_url)
   end
 
   def create_reject_notification(follow)
-    ActivityPub::DeliveryWorker.perform_async(build_reject_json(follow), follow.target_account_id, follow.account.inbox_url)
+    ActivityPub::DeliveryJob.perform_later(build_reject_json(follow), follow.target_account_id, follow.account.inbox_url)
   end
 
   def build_json(follow)
