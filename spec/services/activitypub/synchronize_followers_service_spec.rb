@@ -33,7 +33,7 @@ RSpec.describe ActivityPub::SynchronizeFollowersService do
       bob.follow!(actor)
       mallory.request_follow!(actor)
 
-      allow(ActivityPub::DeliveryWorker).to receive(:perform_async)
+      allow(ActivityPub::DeliveryJob).to receive(:perform_later)
 
       subject.call(actor, collection_uri)
     end
@@ -45,8 +45,8 @@ RSpec.describe ActivityPub::SynchronizeFollowersService do
         .to_not be_following(actor) # Remove local followers not in remote list
       expect(mallory)
         .to be_following(actor) # Convert follow request to follow when accepted
-      expect(ActivityPub::DeliveryWorker)
-        .to have_received(:perform_async).with(anything, eve.id, actor.inbox_url) # Send Undo Follow to actor
+      expect(ActivityPub::DeliveryJob)
+        .to have_received(:perform_later).with(anything, eve.id, actor.inbox_url) # Send Undo Follow to actor
     end
   end
 
