@@ -12,10 +12,12 @@ class ApplicationJob < ActiveJob::Base
     Mastodon::SidekiqMiddleware.new.call(&block)
   end
 
-  def self.push_bulk(elems)
-    jobs = elems.map do |elem|
-      new(*yield(elem))
+  def self.push_bulk(elems, limit: 10_000)
+    elems.each_slice(limit).map do |elems_batch|
+      jobs = elems_batch.map do |elem|
+        new(*yield(elem))
+      end
+      ActiveJob.perform_all_later(jobs)
     end
-    ActiveJob.perform_all_later(jobs)
   end
 end
