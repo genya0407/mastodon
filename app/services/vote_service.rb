@@ -56,7 +56,7 @@ class VoteService < BaseService
 
   def deliver_votes!
     @votes.each do |vote|
-      ActivityPub::DeliveryWorker.perform_async(
+      ActivityPub::DeliveryJob.perform_later(
         build_json(vote),
         @account.id,
         @poll.account.inbox_url

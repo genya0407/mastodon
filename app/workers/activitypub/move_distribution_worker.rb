@@ -10,11 +10,11 @@ class ActivityPub::MoveDistributionWorker
     @migration = AccountMigration.find(migration_id)
     @account   = @migration.account
 
-    ActivityPub::DeliveryWorker.push_bulk(inboxes, limit: 1_000) do |inbox_url|
+    ActivityPub::DeliveryJob.push_bulk(inboxes, limit: 1_000) do |inbox_url|
       [signed_payload, @account.id, inbox_url]
     end
 
-    ActivityPub::DeliveryWorker.push_bulk(Relay.enabled.pluck(:inbox_url)) do |inbox_url|
+    ActivityPub::DeliveryJob.push_bulk(Relay.enabled.pluck(:inbox_url)) do |inbox_url|
       [signed_payload, @account.id, inbox_url]
     end
   rescue ActiveRecord::RecordNotFound

@@ -14,7 +14,7 @@ class UnblockService < BaseService
   private
 
   def create_notification(unblock)
-    ActivityPub::DeliveryWorker.perform_async(build_json(unblock), unblock.account_id, unblock.target_account.inbox_url)
+    ActivityPub::DeliveryJob.perform_later(build_json(unblock), unblock.account_id, unblock.target_account.inbox_url)
   end
 
   def build_json(unblock)

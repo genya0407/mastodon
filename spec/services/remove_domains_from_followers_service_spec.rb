@@ -15,13 +15,13 @@ RSpec.describe RemoveDomainsFromFollowersService do
       end
 
       it 'removes followers from supplied domains and sends a notification' do
-        subject.call(account, ['bad.example'])
+        expect do
+          subject.call(account, ['bad.example'])
+        end.to have_enqueued_job(ActivityPub::DeliveryJob).with(anything, account.id, bad_domain_account.inbox_url)
 
         expect(account.followers)
           .to include(good_domain_account)
           .and not_include(bad_domain_account)
-        expect(ActivityPub::DeliveryWorker)
-          .to have_enqueued_sidekiq_job(anything, account.id, bad_domain_account.inbox_url)
       end
     end
   end

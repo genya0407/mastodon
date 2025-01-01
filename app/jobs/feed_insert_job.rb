@@ -5,13 +5,6 @@ class FeedInsertJob < ApplicationJob
 
   include DatabaseHelper
 
-  def self.push_bulk(elems)
-    jobs = elems.map do |elem|
-      new(*yield(elem))
-    end
-    ActiveJob.perform_all_later(jobs)
-  end
-
   def perform(status_id, id, type = 'home', options = {})
     with_primary do
       @type      = type.to_sym
