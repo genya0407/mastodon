@@ -9,7 +9,9 @@ class ApplicationJob < ActiveJob::Base
   retry_on StandardError
 
   around_perform do |_job, block|
-    Mastodon::SidekiqMiddleware.new.call(&block)
+    Rails.logger.tagged(ENV['OTEL_EXPORTER_OTLP_ENDPOINT'] ? "traceID=#{OpenTelemetry::Trace.current_span.context.hex_trace_id}" : nil) do
+      Mastodon::SidekiqMiddleware.new.call(&block)
+    end
   end
 
   def self.push_bulk(elems, limit: 10_000)
