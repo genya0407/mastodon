@@ -54,7 +54,10 @@ Rails.application.configure do
   config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'info').to_sym
 
   # Prepend all log lines with the following tags.
-  config.log_tags = [:request_id]
+  config.log_tags = [
+    :request_id,
+    ->(_) { ENV['OTEL_EXPORTER_OTLP_ENDPOINT'] ? "traceID=#{OpenTelemetry::Trace.current_span.context.hex_trace_id}" : nil },
+  ]
 
   # Use a different cache store in production.
   config.cache_store = :redis_cache_store, REDIS_CONFIGURATION.cache
