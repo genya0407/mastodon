@@ -10,7 +10,9 @@ class ApplicationJob < ActiveJob::Base
 
   around_perform do |_job, block|
     Rails.logger.tagged(ENV['OTEL_EXPORTER_OTLP_ENDPOINT'] ? "traceID=#{OpenTelemetry::Trace.current_span.context.hex_trace_id}" : nil) do
-      Mastodon::SidekiqMiddleware.new.call(&block)
+      Rails.logger.tagged(ENV['OTEL_EXPORTER_OTLP_ENDPOINT'] ? "spanID=#{OpenTelemetry::Trace.current_span.context.hex_span_id}" : nil) do
+        Mastodon::SidekiqMiddleware.new.call(&block)
+      end
     end
   end
 
