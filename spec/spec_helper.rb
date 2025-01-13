@@ -46,21 +46,10 @@ def serialized_record_json(record, serializer, adapter: nil)
 end
 
 def expect_push_bulk_to_match(klass, matcher)
-  if klass < Sidekiq::Worker
-    allow(Sidekiq::Client).to receive(:push_bulk)
-    yield
-    expect(Sidekiq::Client).to have_received(:push_bulk).with(hash_including({
-      'class' => klass,
-      'args' => matcher,
-    }))
-  elsif klass < ApplicationJob
-    captured_args = []
-    allow(ActiveJob).to receive(:perform_all_later) do |jobs|
-      captured_args = jobs.map(&:arguments)
-    end
-    yield
-    expect(captured_args).to match_array(matcher)
-  else
-    raise "unexpected class: #{klass}"
-  end
+  allow(Sidekiq::Client).to receive(:push_bulk)
+  yield
+  expect(Sidekiq::Client).to have_received(:push_bulk).with(hash_including({
+    'class' => klass,
+    'args' => matcher,
+  }))
 end

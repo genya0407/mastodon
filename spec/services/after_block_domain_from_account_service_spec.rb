@@ -21,7 +21,7 @@ RSpec.describe AfterBlockDomainFromAccountService do
       .to change { wolf.following?(alice) }.from(true).to(false)
       .and change { NotificationPermission.exists?(account: alice, from_account: wolf) }.from(true).to(false)
 
-    expect(ActiveJob::Base.queue_adapter.enqueued_jobs.pluck('arguments')).to contain_exactly(
+    expect(ActivityPub::DeliveryWorker.jobs.pluck('args')).to contain_exactly(
       [a_string_including('"type":"Reject"'), alice.id, wolf.inbox_url],
       [a_string_including('"type":"Undo"'), alice.id, dog.inbox_url]
     )

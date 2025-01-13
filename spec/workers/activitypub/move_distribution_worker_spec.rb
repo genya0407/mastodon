@@ -16,7 +16,7 @@ RSpec.describe ActivityPub::MoveDistributionWorker do
     end
 
     it 'delivers to followers and known blockers' do
-      expect_push_bulk_to_match(ActivityPub::DeliveryJob, expected_migration_deliveries) do
+      expect_push_bulk_to_match(ActivityPub::DeliveryWorker, expected_migration_deliveries) do
         subject.perform(migration.id)
       end
     end

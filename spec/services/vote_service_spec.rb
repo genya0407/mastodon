@@ -27,14 +27,12 @@ RSpec.describe VoteService do
       context 'when the poll was created by a remote account' do
         let(:account) { Fabricate(:account, domain: 'host.example') }
 
-        it 'stores the votes' do
+        it 'stores the votes and processes delivery' do
           expect { subject }
             .to change(PollVote, :count).by(1)
-        end
 
-        it 'processes delivery' do
-          expect { subject }
-            .to have_enqueued_job(ActivityPub::DeliveryJob).with(anything, voter.id, poll.account.inbox_url)
+          expect(ActivityPub::DeliveryWorker)
+            .to have_enqueued_sidekiq_job(anything, voter.id, poll.account.inbox_url)
         end
       end
     end

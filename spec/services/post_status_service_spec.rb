@@ -204,24 +204,24 @@ RSpec.describe PostStatusService do
   end
 
   it 'gets distributed' do
-    allow(DistributionJob).to receive(:perform_later)
+    allow(DistributionWorker).to receive(:perform_async)
     allow(ActivityPub::DistributionWorker).to receive(:perform_async)
 
     account = Fabricate(:account)
 
     status = subject.call(account, text: 'test status update')
 
-    expect(DistributionJob).to have_received(:perform_later).with(status.id)
+    expect(DistributionWorker).to have_received(:perform_async).with(status.id)
     expect(ActivityPub::DistributionWorker).to have_received(:perform_async).with(status.id)
   end
 
   it 'crawls links' do
-    allow(LinkCrawlJob).to receive(:perform_later)
+    allow(LinkCrawlWorker).to receive(:perform_async)
     account = Fabricate(:account)
 
     status = subject.call(account, text: 'test status update')
 
-    expect(LinkCrawlJob).to have_received(:perform_later).with(status.id)
+    expect(LinkCrawlWorker).to have_received(:perform_async).with(status.id)
   end
 
   it 'attaches the given media to the created status' do

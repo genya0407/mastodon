@@ -75,26 +75,6 @@ Devise::Test::ControllerHelpers.module_eval do
   end
 end
 
-module ApplicationJobTesting
-  class << self
-    attr_accessor :blk
-  end
-
-  def perform_later(...)
-    super
-    ApplicationJobTesting.blk&.call
-  end
-
-  module ActiveJobExt
-    def perform_all_later(...)
-      super
-      ApplicationJobTesting.blk&.call
-    end
-  end
-end
-ApplicationJob.singleton_class.prepend(ApplicationJobTesting)
-ActiveJob.singleton_class.prepend(ApplicationJobTesting::ActiveJobExt)
-
 RSpec.configure do |config|
   # By default, skip specs that need full JS browser
   config.filter_run_excluding :js
@@ -148,10 +128,8 @@ RSpec.configure do |config|
   config.around do |example|
     if example.metadata[:inline_jobs] == true
       Sidekiq::Testing.inline!
-      ApplicationJobTesting.blk = proc { perform_enqueued_jobs }
     else
       Sidekiq::Testing.fake!
-      ApplicationJobTesting.blk = nil
     end
     example.run
   end
