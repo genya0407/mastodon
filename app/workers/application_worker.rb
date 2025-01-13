@@ -16,12 +16,26 @@ class ApplicationWorker < ActiveJob::Base # rubocop:disable Rails/ApplicationJob
     end
   end
 
-  def self.push_bulk(elems, limit: 10_000)
-    elems.each_slice(limit).map do |elems_batch|
-      jobs = elems_batch.map do |elem|
-        new(*yield(elem))
+  # Sidekiq adapters
+
+  class << self
+    def push_bulk(elems, limit: 10_000)
+      elems.each_slice(limit).map do |elems_batch|
+        jobs = elems_batch.map do |elem|
+          new(*yield(elem))
+        end
+        ActiveJob.perform_all_later(jobs)
       end
-      ActiveJob.perform_all_later(jobs)
+    end
+
+    alias perform_async perform_later
+
+    def perform_in(seconds, *args)
+      set(wait: seconds).perform_later(*args)
+    end
+
+    def sidekiq_options(**kwargs)
+      # TODO: impl here
     end
   end
 end

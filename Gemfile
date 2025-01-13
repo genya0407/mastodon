@@ -79,10 +79,10 @@ gem 'rqrcode', '~> 2.2'
 gem 'ruby-progressbar', '~> 1.13'
 gem 'sanitize', '~> 6.0'
 gem 'scenic', '~> 1.7'
-gem 'sidekiq', '~> 6.5'
-gem 'sidekiq-bulk', '~> 0.2.0'
-gem 'sidekiq-scheduler', '~> 5.0'
-gem 'sidekiq-unique-jobs', '~> 7.1'
+gem 'sidekiq', '~> 6.5', require: false
+gem 'sidekiq-bulk', '~> 0.2.0', require: false
+gem 'sidekiq-scheduler', '~> 5.0', require: false
+gem 'sidekiq-unique-jobs', '~> 7.1', require: false
 gem 'simple_form', '~> 5.2'
 gem 'simple-navigation', '~> 4.4'
 gem 'solid_queue', '~> 1.1'
@@ -130,7 +130,7 @@ group :test do
   gem 'email_spec'
 
   # Extra RSpec extension methods and helpers for sidekiq
-  gem 'rspec-sidekiq', '~> 5.0'
+  gem 'rspec-sidekiq', '~> 5.0', require: false
 
   # Browser integration testing
   gem 'capybara', '~> 3.39'

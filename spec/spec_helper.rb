@@ -46,10 +46,10 @@ def serialized_record_json(record, serializer, adapter: nil)
 end
 
 def expect_push_bulk_to_match(klass, matcher)
-  allow(Sidekiq::Client).to receive(:push_bulk)
+  allow(ActiveJob).to receive(:perform_all_later)
   yield
-  expect(Sidekiq::Client).to have_received(:push_bulk).with(hash_including({
-    'class' => klass,
-    'args' => matcher,
-  }))
+  expect(ActiveJob).to have_received(:perform_all_later) do |jobs|
+    expect(jobs.all?(klass)).to be true
+    expect(jobs.map(&:arguments)).to match_array matcher
+  end
 end
