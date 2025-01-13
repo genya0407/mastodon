@@ -54,7 +54,7 @@ class ReportService < BaseService
     return unless forward_to_origin?
 
     # Send report to the server where the account originates from
-    ActivityPub::DeliveryJob.perform_later(payload, some_local_account.id, @target_account.inbox_url)
+    ActivityPub::DeliveryWorker.perform_async(payload, some_local_account.id, @target_account.inbox_url)
   end
 
   def forward_to_replied_to!
@@ -62,7 +62,7 @@ class ReportService < BaseService
     inbox_urls = Account.remote.where(domain: forward_to_domains).where(id: Status.where(id: reported_status_ids).where.not(in_reply_to_account_id: nil).select(:in_reply_to_account_id)).inboxes - [@target_account.inbox_url, @target_account.shared_inbox_url]
 
     inbox_urls.each do |inbox_url|
-      ActivityPub::DeliveryJob.perform_later(payload, some_local_account.id, inbox_url)
+      ActivityPub::DeliveryWorker.perform_async(payload, some_local_account.id, inbox_url)
     end
   end
 

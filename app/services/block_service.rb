@@ -22,7 +22,7 @@ class BlockService < BaseService
   private
 
   def create_notification(block)
-    ActivityPub::DeliveryJob.perform_later(build_json(block), block.account_id, block.target_account.inbox_url)
+    ActivityPub::DeliveryWorker.perform_async(build_json(block), block.account_id, block.target_account.inbox_url)
   end
 
   def build_json(block)

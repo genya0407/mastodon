@@ -95,7 +95,7 @@ class ActivityPub::Activity::Create < ActivityPub::Activity
     LinkCrawlJob.set(wait: rand(1..59).seconds).perform_later(@status.id)
 
     # Distribute into home and list feeds and notify mentioned accounts
-    ::DistributionJob.perform_later(@status.id, { 'silenced_account_ids' => @silenced_account_ids }) if @options[:override_timestamps] || @status.within_realtime_window?
+    ::DistributionWorker.perform_async(@status.id, { 'silenced_account_ids' => @silenced_account_ids }) if @options[:override_timestamps] || @status.within_realtime_window?
   end
 
   def find_existing_status
@@ -170,7 +170,7 @@ class ActivityPub::Activity::Create < ActivityPub::Activity
 
     return unless delivered_to_account.following?(@account)
 
-    FeedInsertJob.perform_later(@status.id, delivered_to_account.id, 'home')
+    FeedInsertWorker.perform_async(@status.id, delivered_to_account.id, 'home')
   end
 
   def delivered_to_account

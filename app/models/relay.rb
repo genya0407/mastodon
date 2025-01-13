@@ -31,7 +31,7 @@ class Relay < ApplicationRecord
 
     update!(state: :pending, follow_activity_id: activity_id)
     DeliveryFailureTracker.reset!(inbox_url)
-    ActivityPub::DeliveryJob.perform_later(payload, some_local_account.id, inbox_url)
+    ActivityPub::DeliveryWorker.perform_async(payload, some_local_account.id, inbox_url)
   end
 
   def disable!
@@ -40,7 +40,7 @@ class Relay < ApplicationRecord
 
     update!(state: :idle, follow_activity_id: nil)
     DeliveryFailureTracker.reset!(inbox_url)
-    ActivityPub::DeliveryJob.perform_later(payload, some_local_account.id, inbox_url)
+    ActivityPub::DeliveryWorker.perform_async(payload, some_local_account.id, inbox_url)
   end
 
   private

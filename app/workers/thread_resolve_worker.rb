@@ -18,7 +18,7 @@ class ThreadResolveWorker
     child_status.thread = parent_status
     child_status.save!
 
-    DistributionJob.perform_later(child_status_id, { 'skip_notifications' => true }) if child_status.within_realtime_window?
+    DistributionWorker.perform_async(child_status_id, { 'skip_notifications' => true }) if child_status.within_realtime_window?
   rescue ActiveRecord::RecordNotFound
     true
   end

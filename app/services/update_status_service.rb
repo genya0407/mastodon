@@ -127,7 +127,7 @@ class UpdateStatusService < BaseService
     return unless @status.text_previously_changed?
 
     @status.reset_preview_card!
-    LinkCrawlJob.perform_later(@status.id)
+    LinkCrawlWorker.perform_async(@status.id)
   end
 
   def update_metadata!
@@ -136,7 +136,7 @@ class UpdateStatusService < BaseService
   end
 
   def broadcast_updates!
-    DistributionJob.perform_later(@status.id, { 'update' => true })
+    DistributionWorker.perform_async(@status.id, { 'update' => true })
     ActivityPub::StatusUpdateDistributionWorker.perform_async(@status.id)
   end
 

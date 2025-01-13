@@ -32,7 +32,7 @@ class SuspendAccountService < BaseService
     # account to re-follow you, so this part is not reversible.
 
     Follow.where(account: @account).find_in_batches do |follows|
-      ActivityPub::DeliveryJob.push_bulk(follows) do |follow|
+      ActivityPub::DeliveryWorker.push_bulk(follows) do |follow|
         [Oj.dump(serialize_payload(follow, ActivityPub::RejectFollowSerializer)), follow.target_account_id, @account.inbox_url]
       end
 
@@ -45,7 +45,7 @@ class SuspendAccountService < BaseService
 
     account_reach_finder = AccountReachFinder.new(@account)
 
-    ActivityPub::DeliveryJob.push_bulk(account_reach_finder.inboxes, limit: 1_000) do |inbox_url|
+    ActivityPub::DeliveryWorker.push_bulk(account_reach_finder.inboxes, limit: 1_000) do |inbox_url|
       [signed_activity_json, @account.id, inbox_url]
     end
   end

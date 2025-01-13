@@ -62,7 +62,7 @@ class Scheduler::SelfDestructScheduler
 
     json = Oj.dump(ActivityPub::LinkedDataSignature.new(payload).sign!(account))
 
-    ActivityPub::DeliveryJob.push_bulk(inboxes, limit: 1_000) do |inbox_url|
+    ActivityPub::DeliveryWorker.push_bulk(inboxes, limit: 1_000) do |inbox_url|
       [json, account.id, inbox_url]
     end
 
