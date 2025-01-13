@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
-class MentionResolveWorker
-  include Sidekiq::Worker
+class MentionResolveWorker < ApplicationWorker
   include ExponentialBackoff
   include JsonLdHelper
 

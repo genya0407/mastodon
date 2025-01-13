@@ -1,8 +1,6 @@
 # frozen_string_literal: true
 
-class Scheduler::UserCleanupScheduler
-  include Sidekiq::Worker
-
+class Scheduler::UserCleanupScheduler < ApplicationWorker
   UNCONFIRMED_ACCOUNTS_MAX_AGE_DAYS = 7
   DISCARDED_STATUSES_MAX_AGE_DAYS = 30
 
