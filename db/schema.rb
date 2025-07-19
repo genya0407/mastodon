@@ -510,8 +510,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_27_132728) do
     t.datetime "updated_at", precision: nil, null: false
     t.bigint "account_id", null: false
     t.bigint "status_id", null: false
+    t.text "emoji"
+    t.bigint "custom_emoji_id"
     t.index ["account_id", "id"], name: "index_favourites_on_account_id_and_id"
     t.index ["account_id", "status_id"], name: "index_favourites_on_account_id_and_status_id", unique: true
+    t.index ["custom_emoji_id"], name: "index_favourites_on_custom_emoji_id"
     t.index ["status_id"], name: "index_favourites_on_status_id"
   end
 
@@ -1102,6 +1105,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_06_27_132728) do
     t.datetime "updated_at", precision: nil, null: false
     t.bigint "untrusted_favourites_count"
     t.bigint "untrusted_reblogs_count"
+    t.jsonb "emoji_count"
     t.index ["status_id"], name: "index_status_stats_on_status_id", unique: true
   end
 

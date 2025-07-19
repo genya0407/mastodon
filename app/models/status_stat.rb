@@ -13,6 +13,7 @@
 #  updated_at                 :datetime         not null
 #  untrusted_favourites_count :bigint(8)
 #  untrusted_reblogs_count    :bigint(8)
+#  emoji_count      :jsonb
 #
 
 class StatusStat < ApplicationRecord
@@ -32,6 +33,10 @@ class StatusStat < ApplicationRecord
 
   def favourites_count
     [attributes['favourites_count'], 0].max
+  end
+
+  def emoji_count
+    attributes['emoji_count'] || {}
   end
 
   private

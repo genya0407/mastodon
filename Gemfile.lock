@@ -271,6 +271,9 @@ GEM
     fugit (1.11.1)
       et-orbi (~> 1, >= 1.2.11)
       raabro (~> 1.4)
+    get_process_mem (1.0.0)
+      bigdecimal (>= 2.0)
+      ffi (~> 1.0)
     globalid (1.2.1)
       activesupport (>= 6.1)
     google-protobuf (4.31.0)
@@ -638,6 +641,10 @@ GEM
     public_suffix (6.0.2)
     puma (6.6.0)
       nio4r (~> 2.0)
+    puma_worker_killer (1.0.0)
+      bigdecimal (>= 2.0)
+      get_process_mem (>= 0.2)
+      puma (>= 2.7)
     pundit (2.5.0)
       activesupport (>= 3.0.0)
     raabro (1.4.0)
@@ -1049,6 +1056,7 @@ DEPENDENCIES
   propshaft
   public_suffix (~> 6.0)
   puma (~> 6.3)
+  puma_worker_killer
   pundit (~> 2.3)
   rack-attack (~> 6.6)
   rack-cors
