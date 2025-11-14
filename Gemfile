@@ -234,3 +234,7 @@ gem 'hcaptcha', '~> 7.1'
 gem 'mail', '~> 2.8'
 
 gem 'vite_rails', '~> 3.0.19'
+
+# custom
+
+gem 'puma_worker_killer'
