@@ -28,6 +28,11 @@ jobs:
           minor_version=$(ruby -e "require './lib/mastodon/version'; puts %{v#{Mastodon::Version.major}.#{Mastodon::Version.minor}}")
           echo "minor_version=$minor_version" >> $GITHUB_OUTPUT
 
+      - name: test
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr list
+
       - name: Check and merge upstream
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
