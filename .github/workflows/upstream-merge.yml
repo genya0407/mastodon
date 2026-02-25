@@ -63,6 +63,7 @@ jobs:
             echo "PR for branch $branch already exists. Skipping PR creation."
           else
             gh pr create \
+              --repo genya0407/mastodon \
               --base trunk \
               --head "$branch" \
               --title "Merge upstream release ${latest_tag}" \
