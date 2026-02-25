@@ -8,11 +8,14 @@ on:
 jobs:
   check-and-merge:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
 
     steps:
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.PR_CREATE_PRIVATE_KEY }}
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -29,7 +32,7 @@ jobs:
 
       - name: Check and merge upstream
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
         run: |
           git remote add upstream https://github.com/mastodon/mastodon.git
           git fetch upstream --tags
@@ -54,7 +57,7 @@ jobs:
 
           if gh pr list --head "$branch" --base trunk --state open --json number | jq -e '. | length > 0' > /dev/null; then
             echo "PR for branch $branch already exists. Skipping PR creation."
-          else          
+          else
             gh pr create \
               --base trunk \
               --head "$branch" \
