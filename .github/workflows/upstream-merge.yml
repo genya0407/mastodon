@@ -30,6 +30,8 @@ jobs:
           echo "minor_version=$minor_version" >> $GITHUB_OUTPUT
 
       - name: Check and merge upstream
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git remote add upstream https://github.com/mastodon/mastodon.git
           git fetch upstream --tags
