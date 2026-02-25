@@ -28,11 +28,6 @@ jobs:
           minor_version=$(ruby -e "require './lib/mastodon/version'; puts %{v#{Mastodon::Version.major}.#{Mastodon::Version.minor}}")
           echo "minor_version=$minor_version" >> $GITHUB_OUTPUT
 
-      - name: test
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh pr list
-
       - name: Check and merge upstream
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -58,7 +53,7 @@ jobs:
             git push origin HEAD
           fi
 
-          if gh pr list --head "$branch" --base trunk --state open --json number | jq -e '. | length > 0' > /dev/null; then
+          if gh pr list --repo genya0407/mastodon --head "$branch" --base trunk --state open --json number | jq -e '. | length > 0' > /dev/null; then
             echo "PR for branch $branch already exists. Skipping PR creation."
           else
             gh pr create \
