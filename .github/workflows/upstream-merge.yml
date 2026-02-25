@@ -53,4 +53,4 @@ jobs:
             --base trunk \
             --head "$branch" \
             --title "Merge upstream release ${latest_tag}" \
-            --body "Automated PR to merge upstream Mastodon release ${latest_tag} into trunk."
+            --body "Automated PR to merge upstream Mastodon release ${latest_tag} into trunk.\n[Release ${latest_tag}](https://github.com/mastodon/mastodon/releases/tag/${latest_tag})"
