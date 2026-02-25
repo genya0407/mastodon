@@ -40,6 +40,9 @@ jobs:
             exit 0
           fi
 
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
           branch="feature/merge-${latest_tag}"
           git checkout -b $branch
           git merge ${latest_tag}
