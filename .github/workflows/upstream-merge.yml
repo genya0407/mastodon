@@ -5,14 +5,13 @@ on:
     - cron: '0 0 * * *' # Daily at midnight UTC
   workflow_dispatch: # Allow manual trigger
 
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   check-and-merge:
     runs-on: ubuntu-latest
-    env:
-      TAG_PREFIX: v4.5.
-    permissions:
-      contents: write
-      pull-requests: write
 
     steps:
       - name: Checkout repository
@@ -30,6 +29,8 @@ jobs:
           echo "minor_version=$minor_version" >> $GITHUB_OUTPUT
 
       - name: Check and merge upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git remote add upstream https://github.com/mastodon/mastodon.git
           git fetch upstream --tags
@@ -44,13 +45,21 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           branch="feature/merge-${latest_tag}"
-          git checkout -b $branch
-          git merge ${latest_tag}
-          git push origin HEAD
+          if git ls-remote --heads origin "$branch" | grep -q "$branch"; then
+            echo "Branch $branch already exists. Skipping branch creation."
+          else
+            git checkout -b $branch
+            git merge ${latest_tag}
+            git push origin HEAD
+          fi
 
-          # Create PR using GitHub CLI
-          gh pr create \
-            --base trunk \
-            --head "$branch" \
-            --title "Merge upstream release ${latest_tag}" \
-            --body "Automated PR to merge upstream Mastodon release ${latest_tag} into trunk."
+          if gh pr list --repo genya0407/mastodon --head "$branch" --base trunk --state open --json number | jq -e '. | length > 0' > /dev/null; then
+            echo "PR for branch $branch already exists. Skipping PR creation."
+          else
+            gh pr create \
+              --repo genya0407/mastodon \
+              --base trunk \
+              --head "$branch" \
+              --title "Merge upstream release ${latest_tag}" \
+              --body "Automated PR to merge upstream Mastodon release ${latest_tag} into trunk. [Release ${latest_tag}](https://github.com/mastodon/mastodon/releases/tag/${latest_tag})"
+          fi
