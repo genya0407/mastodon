@@ -8,8 +8,6 @@ on:
 jobs:
   check-and-merge:
     runs-on: ubuntu-latest
-    env:
-      TAG_PREFIX: v4.5.
     permissions:
       contents: write
       pull-requests: write
