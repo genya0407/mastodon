@@ -44,13 +44,20 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           branch="feature/merge-${latest_tag}"
-          git checkout -b $branch
-          git merge ${latest_tag}
-          git push origin HEAD
+          if git ls-remote --heads origin "$branch" | grep -q "$branch"; then
+            echo "Branch $branch already exists. Skipping branch creation."
+          else
+            git checkout -b $branch
+            git merge ${latest_tag}
+            git push origin HEAD
+          fi
 
-          # Create PR using GitHub CLI
-          gh pr create \
-            --base trunk \
-            --head "$branch" \
-            --title "Merge upstream release ${latest_tag}" \
-            --body "Automated PR to merge upstream Mastodon release ${latest_tag} into trunk.\n[Release ${latest_tag}](https://github.com/mastodon/mastodon/releases/tag/${latest_tag})"
+          if gh pr list --head "$branch" --base trunk --state open --json number | jq -e '. | length > 0' > /dev/null; then
+            echo "PR for branch $branch already exists. Skipping PR creation."
+          else          
+            gh pr create \
+              --base trunk \
+              --head "$branch" \
+              --title "Merge upstream release ${latest_tag}" \
+              --body "Automated PR to merge upstream Mastodon release ${latest_tag} into trunk.\n[Release ${latest_tag}](https://github.com/mastodon/mastodon/releases/tag/${latest_tag})"
+          fi
