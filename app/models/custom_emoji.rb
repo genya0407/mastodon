@@ -5,20 +5,20 @@
 # Table name: custom_emojis
 #
 #  id                           :bigint(8)        not null, primary key
-#  shortcode                    :string           default(""), not null
+#  disabled                     :boolean          default(FALSE), not null
 #  domain                       :string
-#  image_file_name              :string
 #  image_content_type           :string
+#  image_file_name              :string
 #  image_file_size              :integer
+#  image_remote_url             :string
+#  image_storage_schema_version :integer
 #  image_updated_at             :datetime
+#  shortcode                    :string           default(""), not null
+#  uri                          :string
+#  visible_in_picker            :boolean          default(TRUE), not null
 #  created_at                   :datetime         not null
 #  updated_at                   :datetime         not null
-#  disabled                     :boolean          default(FALSE), not null
-#  uri                          :string
-#  image_remote_url             :string
-#  visible_in_picker            :boolean          default(TRUE), not null
 #  category_id                  :bigint(8)
-#  image_storage_schema_version :integer
 #
 
 class CustomEmoji < ApplicationRecord
@@ -31,7 +31,9 @@ class CustomEmoji < ApplicationRecord
 
   SHORTCODE_RE_FRAGMENT = '[a-zA-Z0-9_]{2,}'
 
-  SCAN_RE = /:(#{SHORTCODE_RE_FRAGMENT}):/
+  SCAN_RE = /(?<=[^[:alnum:]:]|\n|^)
+    :(#{SHORTCODE_RE_FRAGMENT}):
+    (?=[^[:alnum:]:]|$)/x
   SHORTCODE_ONLY_RE = /\A#{SHORTCODE_RE_FRAGMENT}\z/
 
   IMAGE_MIME_TYPES = %w(image/png image/gif image/webp).freeze
@@ -65,6 +67,10 @@ class CustomEmoji < ApplicationRecord
 
   def object_type
     :emoji
+  end
+
+  def featured?
+    category&.featured_emoji_id == id
   end
 
   def copy!

@@ -14,7 +14,6 @@
 #  created_at                 :datetime         not null
 #  updated_at                 :datetime         not null
 #  status_id                  :bigint(8)        not null
-#  emoji_count      :jsonb
 #
 
 class StatusStat < ApplicationRecord
@@ -38,10 +37,6 @@ class StatusStat < ApplicationRecord
 
   def quotes_count
     [attributes['quotes_count'], 0].max
-  end
-
-  def emoji_count
-    attributes['emoji_count'] || {}
   end
 
   private

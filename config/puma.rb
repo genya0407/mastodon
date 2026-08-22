@@ -12,8 +12,7 @@ else
   bind "tcp://#{ENV.fetch('BIND', '127.0.0.1')}:#{ENV.fetch('PORT', 3000)}"
 end
 
-environment ENV.fetch('RAILS_ENV') { 'development' }
-workers     ENV.fetch('WEB_CONCURRENCY') { 2 }.to_i
+workers ENV.fetch('WEB_CONCURRENCY') { 2 }.to_i
 
 preload_app!
 
@@ -42,18 +41,6 @@ if ENV['MASTODON_PROMETHEUS_EXPORTER_ENABLED'] == 'true'
     # Puma metrics
     PrometheusExporter::Instrumentation::Puma.start unless PrometheusExporter::Instrumentation::Puma.started?
   end
-end
-
-before_worker_boot do
-  ActiveSupport.on_load(:active_record) do
-    ActiveRecord::Base.establish_connection
-  end
-end
-
-before_fork do
-  require 'puma_worker_killer'
-
-  PumaWorkerKiller.enable_rolling_restart(3600)
 end
 
 plugin :tmp_restart

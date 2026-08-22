@@ -17,7 +17,7 @@ class Api::V1::Timelines::HomeController < Api::V1::Timelines::BaseController
     add_async_refresh_header(account_home_feed.async_refresh, retry_seconds: 5)
 
     render json: @statuses,
-           each_serializer: REST::ReactedStatusSerializer,
+           each_serializer: REST::StatusSerializer,
            relationships: @relationships,
            status: account_home_feed.regenerating? ? 206 : 200
   end
