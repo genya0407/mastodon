@@ -2,31 +2,19 @@
 
 class Api::V1::StatusesController < Api::BaseController
   include Authorization
-  include AsyncRefreshesConcern
   include Api::InteractionPoliciesConcern
 
   before_action -> { authorize_if_got_token! :read, :'read:statuses' }, except: [:create, :update, :destroy]
   before_action -> { doorkeeper_authorize! :write, :'write:statuses' }, only:   [:create, :update, :destroy]
-  before_action :require_user!, except:      [:index, :show, :context]
+  before_action :require_user!, except:      [:index, :show]
   before_action :set_statuses, only:         [:index]
-  before_action :set_status, only:           [:show, :context]
+  before_action :set_status, only:           [:show]
   before_action :set_thread, only:           [:create]
   before_action :set_quoted_status, only:    [:create]
   before_action :check_statuses_limit, only: [:index]
 
   override_rate_limit_headers :create, family: :statuses
   override_rate_limit_headers :update, family: :statuses
-
-  # This API was originally unlimited, pagination cannot be introduced without
-  # breaking backwards-compatibility. Arbitrarily high number to cover most
-  # conversations as quasi-unlimited, it would be too much work to render more
-  # than this anyway
-  CONTEXT_LIMIT = 4_096
-
-  # This remains expensive and we don't want to show everything to logged-out users
-  ANCESTORS_LIMIT         = 40
-  DESCENDANTS_LIMIT       = 60
-  DESCENDANTS_DEPTH_LIMIT = 20
 
   def index
     @statuses = preload_collection(@statuses, Status)
@@ -39,6 +27,7 @@ class Api::V1::StatusesController < Api::BaseController
     render json: @status, serializer: REST::ReactedStatusSerializer
   end
 
+<<<<<<< HEAD
   def context
     cache_if_unauthenticated!
 
@@ -77,6 +66,8 @@ class Api::V1::StatusesController < Api::BaseController
     render json: @context, serializer: REST::ContextSerializer, relationships: StatusRelationshipsPresenter.new(statuses, current_user&.account_id)
   end
 
+=======
+>>>>>>> origin/trunk
   def create
     @status = PostStatusService.new.call(
       current_user.account,
@@ -127,10 +118,13 @@ class Api::V1::StatusesController < Api::BaseController
     @status = Status.where(account: current_account).find(params[:id])
     authorize @status, :destroy?
 
+    # JSON is generated before `discard_with_reblogs` in order to have the proper URL
+    # for media attachments, as it would otherwise redirect to the media proxy
+    json = render_to_body json: @status, serializer: REST::StatusSerializer, source_requested: true
+
     @status.discard_with_reblogs
     StatusPin.find_by(status: @status)&.destroy
     @status.account.statuses_count = @status.account.statuses_count - 1
-    json = render_to_body json: @status, serializer: REST::StatusSerializer, source_requested: true
 
     RemovalWorker.perform_async(@status.id, { 'redraft' => !truthy_param?(:delete_media) })
 
@@ -217,6 +211,6 @@ class Api::V1::StatusesController < Api::BaseController
   end
 
   def serialized_accounts(accounts)
-    ActiveModel::Serializer::CollectionSerializer.new(accounts, serializer: REST::AccountSerializer)
+    ActiveModel::Serializer::CollectionSerializer.new(accounts, serializer: REST::AccountSerializer, scope_name: :current_user, scope: current_user)
   end
 end

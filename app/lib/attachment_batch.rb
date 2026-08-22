@@ -54,10 +54,9 @@ class AttachmentBatch
     records.each do |record|
       @attachment_names.each do |attachment_name|
         attachment = record.public_send(attachment_name)
-        styles     = BASE_STYLES | attachment.styles.keys
-
         next if attachment.blank?
 
+        styles = BASE_STYLES | attachment.styles.keys
         styles.each do |style|
           case @storage_mode
           when :s3
@@ -108,9 +107,9 @@ class AttachmentBatch
     # objects can be processed at once, so we have to potentially
     # separate them into multiple calls.
 
-    retries = 0
     keys.each_slice(LIMIT) do |keys_slice|
       logger.debug { "Deleting #{keys_slice.size} objects" }
+<<<<<<< HEAD
 
       with_overridden_timeout(bucket.client, 120) do
         bucket.delete_objects(delete: {
@@ -128,6 +127,26 @@ class AttachmentBatch
       else
         logger.error "Batch deletion from S3 failed after #{e.message}"
         raise e
+=======
+      retries = 0 # Reset for each slice
+      begin
+        with_overridden_timeout(bucket.client, 120) do
+          bucket.delete_objects(delete: {
+            objects: keys_slice.map { |key| { key: key } },
+            quiet: true,
+          })
+        end
+      rescue => e
+        retries += 1
+        if retries < MAX_RETRY
+          logger.debug "Retry #{retries}/#{MAX_RETRY} after #{e.message}"
+          sleep 2**retries
+          retry
+        else
+          logger.error "Batch deletion from S3 failed after #{e.message}"
+          raise e
+        end
+>>>>>>> origin/trunk
       end
     end
   end

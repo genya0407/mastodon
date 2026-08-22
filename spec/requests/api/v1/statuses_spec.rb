@@ -4,10 +4,10 @@ require 'rails_helper'
 
 RSpec.describe '/api/v1/statuses' do
   context 'with an oauth token' do
-    let(:user)  { Fabricate(:user) }
+    include_context 'with API authentication'
+
     let(:client_app) { Fabricate(:application, name: 'Test app', website: 'http://testapp.com') }
     let(:token) { Fabricate(:accessible_access_token, resource_owner_id: user.id, application: client_app, scopes: scopes) }
-    let(:headers) { { 'Authorization' => "Bearer #{token.token}" } }
 
     describe 'GET /api/v1/statuses?id[]=:id' do
       let(:status) { Fabricate(:status) }
@@ -24,6 +24,19 @@ RSpec.describe '/api/v1/statuses' do
           hash_including(id: status.id.to_s),
           hash_including(id: other_status.id.to_s)
         )
+      end
+
+      context 'with too many IDs' do
+        before { stub_const 'Api::BaseController::DEFAULT_STATUSES_LIMIT', 2 }
+
+        it 'returns error response' do
+          get '/api/v1/statuses', headers: headers, params: { id: [123, 456, 789] }
+
+          expect(response)
+            .to have_http_status(422)
+          expect(response.content_type)
+            .to start_with('application/json')
+        end
       end
     end
 
@@ -119,6 +132,7 @@ RSpec.describe '/api/v1/statuses' do
       end
     end
 
+<<<<<<< HEAD
     describe 'GET /api/v1/statuses/:id/context' do
       let(:scopes) { 'read:statuses' }
       let(:status) { Fabricate(:status, account: user.account) }
@@ -151,6 +165,8 @@ RSpec.describe '/api/v1/statuses' do
       end
     end
 
+=======
+>>>>>>> origin/trunk
     describe 'POST /api/v1/statuses' do
       subject do
         post '/api/v1/statuses', headers: headers, params: params
@@ -264,7 +280,11 @@ RSpec.describe '/api/v1/statuses' do
       end
 
       context 'with a quote to a non-mentioned user in a Private Mention' do
+<<<<<<< HEAD
         let!(:quoted_status) { Fabricate(:status, quote_approval_policy: Status::QUOTE_APPROVAL_POLICY_FLAGS[:public] << 16) }
+=======
+        let!(:quoted_status) { Fabricate(:status, quote_approval_policy: InteractionPolicy::POLICY_FLAGS[:public] << 16) }
+>>>>>>> origin/trunk
         let(:params) do
           {
             status: 'Hello, this is a quote',
@@ -283,7 +303,11 @@ RSpec.describe '/api/v1/statuses' do
       end
 
       context 'with a quote to a mentioned user in a Private Mention' do
+<<<<<<< HEAD
         let!(:quoted_status) { Fabricate(:status, quote_approval_policy: Status::QUOTE_APPROVAL_POLICY_FLAGS[:public] << 16) }
+=======
+        let!(:quoted_status) { Fabricate(:status, quote_approval_policy: InteractionPolicy::POLICY_FLAGS[:public] << 16) }
+>>>>>>> origin/trunk
         let(:params) do
           {
             status: "Hello @#{quoted_status.account.acct}, this is a quote",
@@ -305,7 +329,11 @@ RSpec.describe '/api/v1/statuses' do
       end
 
       context 'with a quote in an unlisted message' do
+<<<<<<< HEAD
         let!(:quoted_status) { Fabricate(:status, quote_approval_policy: Status::QUOTE_APPROVAL_POLICY_FLAGS[:public] << 16) }
+=======
+        let!(:quoted_status) { Fabricate(:status, quote_approval_policy: InteractionPolicy::POLICY_FLAGS[:public] << 16) }
+>>>>>>> origin/trunk
         let(:params) do
           {
             status: 'Hello, this is a quote',
@@ -355,7 +383,7 @@ RSpec.describe '/api/v1/statuses' do
       end
 
       context 'with a quote of a reblog' do
-        let(:quoted_status) { Fabricate(:status, quote_approval_policy: Status::QUOTE_APPROVAL_POLICY_FLAGS[:public] << 16) }
+        let(:quoted_status) { Fabricate(:status, quote_approval_policy: InteractionPolicy::POLICY_FLAGS[:public] << 16) }
         let(:reblog) { Fabricate(:status, reblog: quoted_status) }
         let(:params) do
           {
@@ -394,7 +422,11 @@ RSpec.describe '/api/v1/statuses' do
             .to start_with('application/json')
           expect(response.parsed_body[:quote]).to be_present
           expect(response.parsed_body[:spoiler_text]).to eq 'this is a CW'
+<<<<<<< HEAD
           expect(response.parsed_body[:content]).to match(/RE: /)
+=======
+          expect(response.parsed_body[:content]).to include('RE: ')
+>>>>>>> origin/trunk
           expect(response.headers['X-RateLimit-Limit']).to eq RateLimiter::FAMILIES[:statuses][:limit].to_s
           expect(response.headers['X-RateLimit-Remaining']).to eq (RateLimiter::FAMILIES[:statuses][:limit] - 1).to_s
         end
@@ -496,6 +528,7 @@ RSpec.describe '/api/v1/statuses' do
 
       let(:scopes) { 'write:statuses' }
       let(:status) { Fabricate(:status, account: user.account) }
+      let!(:media) { Fabricate(:media_attachment, status: status) }
 
       it_behaves_like 'forbidden for wrong scope', 'read read:statuses'
 
@@ -505,6 +538,15 @@ RSpec.describe '/api/v1/statuses' do
         expect(response).to have_http_status(200)
         expect(response.content_type)
           .to start_with('application/json')
+        expect(response.parsed_body).to include(
+          id: status.id.to_s,
+          media_attachments: contain_exactly(
+            a_hash_including(
+              id: media.id.to_s,
+              url: %r{/system/media_attachments/files/}
+            )
+          )
+        )
         expect(Status.find_by(id: status.id)).to be_nil
         expect(RemovalWorker).to have_enqueued_sidekiq_job(status.id, { 'redraft' => true })
       end
@@ -551,7 +593,7 @@ RSpec.describe '/api/v1/statuses' do
 
         it 'updates the status', :aggregate_failures do
           expect { subject }
-            .to change { status.reload.quote_approval_policy }.to(Status::QUOTE_APPROVAL_POLICY_FLAGS[:public] << 16)
+            .to change { status.reload.quote_approval_policy }.to(InteractionPolicy::POLICY_FLAGS[:public] << 16)
 
           expect(response).to have_http_status(200)
           expect(response.content_type)
@@ -583,20 +625,6 @@ RSpec.describe '/api/v1/statuses' do
             .to start_with('application/json')
         end
       end
-
-      describe 'GET /api/v1/statuses/:id/context' do
-        before do
-          Fabricate(:status, thread: status)
-        end
-
-        it 'returns http unauthorized' do
-          get "/api/v1/statuses/#{status.id}/context"
-
-          expect(response).to have_http_status(404)
-          expect(response.content_type)
-            .to start_with('application/json')
-        end
-      end
     end
 
     context 'with a public status' do
@@ -605,20 +633,6 @@ RSpec.describe '/api/v1/statuses' do
       describe 'GET /api/v1/statuses/:id' do
         it 'returns http success' do
           get "/api/v1/statuses/#{status.id}"
-
-          expect(response).to have_http_status(200)
-          expect(response.content_type)
-            .to start_with('application/json')
-        end
-      end
-
-      describe 'GET /api/v1/statuses/:id/context' do
-        before do
-          Fabricate(:status, thread: status)
-        end
-
-        it 'returns http success' do
-          get "/api/v1/statuses/#{status.id}/context"
 
           expect(response).to have_http_status(200)
           expect(response.content_type)

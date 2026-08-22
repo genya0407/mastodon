@@ -12,8 +12,7 @@ else
   bind "tcp://#{ENV.fetch('BIND', '127.0.0.1')}:#{ENV.fetch('PORT', 3000)}"
 end
 
-environment ENV.fetch('RAILS_ENV') { 'development' }
-workers     ENV.fetch('WEB_CONCURRENCY') { 2 }.to_i
+workers ENV.fetch('WEB_CONCURRENCY') { 2 }.to_i
 
 preload_app!
 
@@ -44,6 +43,7 @@ if ENV['MASTODON_PROMETHEUS_EXPORTER_ENABLED'] == 'true'
   end
 end
 
+<<<<<<< HEAD
 before_worker_boot do
   ActiveSupport.on_load(:active_record) do
     ActiveRecord::Base.establish_connection
@@ -56,6 +56,8 @@ before_fork do
   PumaWorkerKiller.enable_rolling_restart(3600)
 end
 
+=======
+>>>>>>> origin/trunk
 plugin :tmp_restart
 
 set_remote_address(proxy_protocol: :v1) if ENV['PROXY_PROTO_V1'] == 'true'

@@ -3,6 +3,10 @@ import { forwardRef, useCallback, useState } from 'react';
 import { defineMessages, FormattedMessage, useIntl } from 'react-intl';
 
 import { submitCompose } from '@/mastodon/actions/compose';
+<<<<<<< HEAD
+=======
+import { PRIVATE_QUOTE_MODAL_ID } from '@/mastodon/actions/compose_typed';
+>>>>>>> origin/trunk
 import { changeSetting } from '@/mastodon/actions/settings';
 import { CheckBox } from '@/mastodon/components/check_box';
 import { useAppDispatch } from '@/mastodon/store';
@@ -11,8 +15,11 @@ import { ConfirmationModal } from './confirmation_modal';
 import type { BaseConfirmationModalProps } from './confirmation_modal';
 import classes from './styles.module.css';
 
+<<<<<<< HEAD
 export const PRIVATE_QUOTE_MODAL_ID = 'quote/private_notify';
 
+=======
+>>>>>>> origin/trunk
 const messages = defineMessages({
   title: {
     id: 'confirmations.private_quote_notify.title',

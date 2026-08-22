@@ -29,7 +29,11 @@ class ActivityPub::Parser::MediaAttachmentParser
   end
 
   def description
+<<<<<<< HEAD
     str = @json['summary'].presence || @json['name'].presence
+=======
+    str = first_lang_string(@json, 'summary').presence || first_lang_string(@json, 'name').presence
+>>>>>>> origin/trunk
     str = str.strip[0...MediaAttachment::MAX_DESCRIPTION_HARD_LENGTH_LIMIT] if str.present?
     str
   end

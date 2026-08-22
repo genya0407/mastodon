@@ -17,18 +17,19 @@ export interface IAnnouncement extends ApiAnnouncementJSON {
 
 interface AnnouncementProps {
   announcement: IAnnouncement;
-  selected: boolean;
+  active?: boolean;
 }
 
 export const Announcement: FC<AnnouncementProps> = ({
   announcement,
-  selected,
+  active,
 }) => {
   const { read, id } = announcement;
 
   // Dismiss announcement when it becomes active.
   const dispatch = useAppDispatch();
   useEffect(() => {
+<<<<<<< HEAD
     if (selected && !read) {
       dispatch(dismissAnnouncement(id));
     }
@@ -41,10 +42,29 @@ export const Announcement: FC<AnnouncementProps> = ({
       setUnread(!read);
     }
   }, [selected, unread, read]);
+=======
+    if (active && !read) {
+      dispatch(dismissAnnouncement(id));
+    }
+  }, [active, id, dispatch, read]);
+
+  // But visually show the announcement as read only when it goes out of view.
+  const [isVisuallyRead, setIsVisuallyRead] = useState(read);
+  const [previousActive, setPreviousActive] = useState(active);
+  if (active !== previousActive) {
+    setPreviousActive(active);
+
+    // This marks the announcement as read in the UI only after it
+    // went from active to inactive.
+    if (!active && isVisuallyRead !== read) {
+      setIsVisuallyRead(read);
+    }
+  }
+>>>>>>> origin/trunk
 
   return (
-    <AnimateEmojiProvider className='announcements__item'>
-      <strong className='announcements__item__range'>
+    <AnimateEmojiProvider>
+      <strong className='announcements__range'>
         <FormattedMessage
           id='announcement.announcement'
           defaultMessage='Announcement'
@@ -56,14 +76,14 @@ export const Announcement: FC<AnnouncementProps> = ({
       </strong>
 
       <EmojiHTML
-        className='announcements__item__content translate'
+        className='announcements__content translate'
         htmlString={announcement.contentHtml}
         extraEmojis={announcement.emojis}
       />
 
       <ReactionsBar reactions={announcement.reactions} id={announcement.id} />
 
-      {unread && <span className='announcements__item__unread' />}
+      {!isVisuallyRead && <span className='announcements__unread' />}
     </AnimateEmojiProvider>
   );
 };

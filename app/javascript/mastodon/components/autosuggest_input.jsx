@@ -5,12 +5,11 @@ import classNames from 'classnames';
 import ImmutablePropTypes from 'react-immutable-proptypes';
 import ImmutablePureComponent from 'react-immutable-pure-component';
 
-import Overlay from 'react-overlays/Overlay';
-
 import AutosuggestAccountContainer from '../features/compose/containers/autosuggest_account_container';
 
-import AutosuggestEmoji from './autosuggest_emoji';
+import { AutosuggestEmoji } from './autosuggest_emoji';
 import { AutosuggestHashtag } from './autosuggest_hashtag';
+<<<<<<< HEAD
 
 const textAtCursorMatchesToken = (str, caretPosition, searchTokens) => {
   let word;
@@ -36,6 +35,11 @@ const textAtCursorMatchesToken = (str, caretPosition, searchTokens) => {
     return [null, null];
   }
 };
+=======
+import { LocalCustomEmojiProvider } from './emoji/context';
+import { textAtCursorMatchesToken } from './autosuggest/utils';
+import { Popover } from './popover';
+>>>>>>> origin/trunk
 
 export default class AutosuggestInput extends ImmutablePureComponent {
 
@@ -152,6 +156,10 @@ export default class AutosuggestInput extends ImmutablePureComponent {
     this.setState({ focused: true });
   };
 
+  onCloseMenu = () => {
+    this.setState({ suggestionsHidden: true });
+  };
+
   onSuggestionClick = (e) => {
     const suggestion = this.props.suggestions.get(e.currentTarget.getAttribute('data-index'));
     e.preventDefault();
@@ -159,8 +167,8 @@ export default class AutosuggestInput extends ImmutablePureComponent {
     this.input.focus();
   };
 
-  UNSAFE_componentWillReceiveProps (nextProps) {
-    if (nextProps.suggestions !== this.props.suggestions && nextProps.suggestions.size > 0 && this.state.suggestionsHidden && this.state.focused) {
+  componentDidUpdate (prevProps) {
+    if (prevProps.suggestions !== this.props.suggestions && this.props.suggestions.size > 0 && this.state.suggestionsHidden && this.state.focused) {
       this.setState({ suggestionsHidden: false });
     }
   }
@@ -219,15 +227,22 @@ export default class AutosuggestInput extends ImmutablePureComponent {
           spellCheck={spellCheck}
         />
 
-        <Overlay show={!(suggestionsHidden || suggestions.isEmpty())} offset={[0, 0]} placement='bottom' target={this.input} popperConfig={{ strategy: 'fixed' }}>
-          {({ props }) => (
-            <div {...props}>
-              <div className='autosuggest-textarea__suggestions' style={{ width: this.input?.clientWidth }}>
-                {suggestions.map(this.renderSuggestion)}
+        <LocalCustomEmojiProvider>
+          <Popover
+            reference={this.input}
+            isOpen={!(suggestionsHidden || suggestions.isEmpty())}
+            onClose={this.onCloseMenu}
+            flip={false}
+          >
+            {({ props }) => (
+              <div {...props}>
+                <div className='autosuggest-textarea__suggestions' style={{ width: this.input?.clientWidth }}>
+                  {suggestions.map(this.renderSuggestion)}
+                </div>
               </div>
-            </div>
-          )}
-        </Overlay>
+            )}
+          </Popover>
+        </LocalCustomEmojiProvider>
       </div>
     );
   }

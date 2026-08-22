@@ -4,11 +4,7 @@ import { basename, resolve } from 'path';
 import { flattenEmojiData } from 'emojibase';
 import unicodeRawEmojis from 'emojibase-data/en/data.json';
 
-import {
-  twemojiToUnicodeInfo,
-  unicodeToTwemojiHex,
-  emojiToUnicodeHex,
-} from './normalize';
+import { extractTokens, unicodeToTwemojiHex } from './normalize';
 
 const emojiSVGFiles = await readdir(
   // This assumes tests are run from project root
@@ -26,6 +22,7 @@ const svgFileNamesWithoutBorder = svgFileNames.filter(
 
 const unicodeEmojis = flattenEmojiData(unicodeRawEmojis);
 
+<<<<<<< HEAD
 describe('emojiToUnicodeHex', () => {
   test.concurrent.for([
     ['🎱', '1F3B1'],
@@ -43,6 +40,8 @@ describe('emojiToUnicodeHex', () => {
   );
 });
 
+=======
+>>>>>>> origin/trunk
 describe('unicodeToTwemojiHex', () => {
   test.concurrent.for(
     unicodeEmojis
@@ -55,25 +54,31 @@ describe('unicodeToTwemojiHex', () => {
   });
 });
 
-describe('twemojiToUnicodeInfo', () => {
-  const unicodeCodeSet = new Set(unicodeEmojis.map((emoji) => emoji.hexcode));
+describe('extractTokens', () => {
+  test('returns an empty array for blank input', () => {
+    expect(extractTokens('   ', null)).toEqual([]);
+  });
 
-  test.concurrent.for(svgFileNamesWithoutBorder)(
-    'verifying SVG file %s maps to Unicode emoji',
-    (svgFileName, { expect }) => {
-      assert(!!svgFileName);
-      const result = twemojiToUnicodeInfo(svgFileName);
-      const hexcode = typeof result === 'string' ? result : result.unqualified;
-      if (!hexcode) {
-        // No hexcode means this is a special case like the Shibuya 109 emoji
-        expect(result).toHaveProperty('label');
-        return;
-      }
-      assert(!!hexcode);
-      expect(
-        unicodeCodeSet.has(hexcode),
-        `${hexcode} (${svgFileName}) not found`,
-      ).toBeTruthy();
-    },
-  );
+  test('check token word breaking with Intl.Segmenter', () => {
+    const segmenter = new Intl.Segmenter('en', { granularity: 'word' });
+
+    expect(
+      extractTokens('thumbs_up smiling-face camelCase', segmenter),
+    ).toEqual(['thumbs', 'up', 'smiling', 'face', 'camel', 'case']);
+  });
+
+  test('check token word breaking with regex', () => {
+    expect(extractTokens('Smile_face joy-test A ok 7 z', null)).toEqual([
+      'smile',
+      'face',
+      'joy',
+      'test',
+      'ok',
+    ]);
+  });
+
+  test('ensure +1 and -1 are preserved', () => {
+    expect(extractTokens('+1', null)).toEqual(['+1']);
+    expect(extractTokens('-1', null)).toEqual(['-1']);
+  });
 });
