@@ -1,0 +1,65 @@
+name: Check Upstream Releases and Create Merge PRs
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Daily at midnight UTC
+  workflow_dispatch: # Allow manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-and-merge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history and tags
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+
+      - name: extract mastodon version from lib/mastodon/version.rb
+        id: version
+        run: |
+          minor_version=$(ruby -e "require './lib/mastodon/version'; puts %{v#{Mastodon::Version.major}.#{Mastodon::Version.minor}}")
+          echo "minor_version=$minor_version" >> $GITHUB_OUTPUT
+
+      - name: Check and merge upstream
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git remote add upstream https://github.com/mastodon/mastodon.git
+          git fetch upstream --tags
+          latest_tag=$(git tag -l "${{ steps.version.outputs.minor_version }}.*" | sort -V | tail -n 1)
+          ahead_commits=$(git rev-list --count trunk..${latest_tag})
+          if [ "$ahead_commits" -eq 0 ]; then
+            echo "Local trunk is ahead of $latest_tag."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          branch="feature/merge-${latest_tag}"
+          if git ls-remote --heads origin "$branch" | grep -q "$branch"; then
+            echo "Branch $branch already exists. Skipping branch creation."
+          else
+            git checkout -b $branch
+            git merge ${latest_tag}
+            git push origin HEAD
+          fi
+
+          if gh pr list --repo genya0407/mastodon --head "$branch" --base trunk --state open --json number | jq -e '. | length > 0' > /dev/null; then
+            echo "PR for branch $branch already exists. Skipping PR creation."
+          else
+            gh pr create \
+              --repo genya0407/mastodon \
+              --base trunk \
+              --head "$branch" \
+              --title "Merge upstream release ${latest_tag}" \
+              --body "Automated PR to merge upstream Mastodon release ${latest_tag} into trunk. [Release ${latest_tag}](https://github.com/mastodon/mastodon/releases/tag/${latest_tag})"
+          fi

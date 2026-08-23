@@ -1037,7 +1037,7 @@ body > [data-popover-placement] {
   vertical-align: middle;
   object-fit: contain;
   margin: -0.2ex 0.15em 0.2ex;
-  width: 16px;
+  width: auto;
   height: 16px;
 
   img {
@@ -1080,7 +1080,7 @@ body > [data-popover-placement] {
   }
 
   .emojione {
-    width: 20px;
+    width: auto;
     height: 20px;
     margin: -3px 0 0;
   }
@@ -1319,7 +1319,7 @@ body > [data-popover-placement] {
   overflow-y: auto;
 
   .emojione {
-    width: 20px;
+    width: auto;
     height: 20px;
     margin: -3px 0 0;
   }
@@ -1817,7 +1817,7 @@ body > [data-popover-placement] {
     line-height: 24px;
 
     .emojione {
-      width: 24px;
+      width: auto;
       height: 24px;
       margin: -1px 0 0;
     }
@@ -7031,7 +7031,7 @@ a.status-card {
     line-height: 24px;
 
     .emojione {
-      width: 24px;
+      width: auto;
       height: 24px;
       margin: -1px 0 0;
     }

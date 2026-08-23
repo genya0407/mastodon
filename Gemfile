@@ -233,3 +233,7 @@ gem 'hcaptcha', '~> 7.1'
 gem 'mail', '~> 2.8'
 
 gem 'base58', '~> 0.2.3'
+
+# custom
+
+gem 'puma_worker_killer'
