@@ -280,8 +280,14 @@ class Status < ApplicationRecord
 
     fields  = [spoiler_text, text]
     fields += preloadable_poll.options unless preloadable_poll.nil?
+    emojis_in_text = CustomEmoji.from_text(fields.join(' '), account.domain)
+    emojis_in_reaction = if emoji_count.keys.any? { |emoji| emoji.start_with?(':') }
+                           favourites.preload(:custom_emoji).map(&:custom_emoji).to_a.compact
+                         else
+                           []
+                         end
 
-    @emojis = CustomEmoji.from_text(fields.join(' '), account.domain)
+    @emojis = (emojis_in_text + emojis_in_reaction + account.emojis).uniq
   end
 
   def ordered_media_attachments
@@ -321,6 +327,10 @@ class Status < ApplicationRecord
     status_stat&.untrusted_favourites_count unless local?
   end
 
+  def emoji_count
+    status_stat&.emoji_count || {}
+  end
+
   def increment_count!(key)
     if key == :favourites_count && !untrusted_favourites_count.nil?
       update_status_stat!(favourites_count: favourites_count + 1, untrusted_favourites_count: untrusted_favourites_count + 1)
@@ -339,6 +349,24 @@ class Status < ApplicationRecord
     else
       update_status_stat!(key => [public_send(key) - 1, 0].max)
     end
+  end
+
+  def increment_emoji!(emoji)
+    return if emoji.blank?
+
+    update_status_stat!(
+      emoji_count: emoji_count.tap { |hash| hash[emoji] = (hash[emoji] || 0) + 1 }
+    )
+  end
+
+  def decrement_emoji!(emoji)
+    return if emoji.blank?
+
+    update_status_stat!(
+      emoji_count: emoji_count
+        .tap { |hash| hash[emoji] = (hash[emoji] || 0) - 1 }
+        .tap { |hash| hash.delete(emoji) if hash[emoji] <= 0 }
+    )
   end
 
   def trendable?
