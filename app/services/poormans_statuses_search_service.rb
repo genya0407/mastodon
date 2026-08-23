@@ -40,8 +40,8 @@ class PoormansStatusesSearchService < BaseService
 
     account_ids         = results.map(&:account_id)
     account_domains     = results.map(&:account_domain)
-    preloaded_relations = @account.relations_map(account_ids, account_domains)
+    @account.preload_relations!(account_ids, account_domains)
 
-    results.reject { |status| StatusFilter.new(status, @account, preloaded_relations).filtered? }
+    results.reject { |status| StatusFilter.new(status, @account).filtered? }
   end
 end
