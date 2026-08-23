@@ -594,12 +594,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_12_154114) do
     t.bigint "account_id", null: false
     t.datetime "created_at", precision: nil, null: false
     t.bigint "status_id", null: false
-<<<<<<< ours
     t.datetime "updated_at", precision: nil, null: false
-=======
     t.text "emoji"
     t.bigint "custom_emoji_id"
->>>>>>> theirs
     t.index ["account_id", "id"], name: "index_favourites_on_account_id_and_id"
     t.index ["account_id", "status_id"], name: "index_favourites_on_account_id_and_status_id", unique: true
     t.index ["custom_emoji_id"], name: "index_favourites_on_custom_emoji_id"
