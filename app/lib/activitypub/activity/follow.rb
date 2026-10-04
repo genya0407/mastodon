@@ -70,8 +70,6 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
     return false if phrases.empty?
 
     statuses = recent_distributable_statuses(status_count, target_account)
-    return true if statuses.nil?
-
     normalized_phrases = phrases.map { |phrase| normalize_status_text(phrase) }
     statuses.any? do |status|
       status_text = normalize_status_text(Nokogiri::HTML5.fragment([status.spoiler_text, status.text].join("\n")).text)
@@ -83,16 +81,20 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
     statuses = @account.statuses.without_reblogs.distributable_visibility.reorder(id: :desc).limit(status_count).to_a
     return statuses if statuses.size >= status_count
 
+    item_limit = [status_count * 5, 100].min
     items, = collection_items(
       @account.outbox_url,
-      max_pages: status_count,
-      max_items: status_count,
+      max_pages: [status_count, 5].max,
+      max_items: item_limit,
       reference_uri: @account.uri,
       on_behalf_of: target_account
     )
     raise StatusFetchError, 'Could not fetch the sender outbox' if items.nil?
 
+    fetched_statuses = []
     items.each do |item|
+      next unless status_activity?(item)
+
       uri = value_or_id(item)
       raise StatusFetchError, 'The sender outbox contains an item without a URI' if uri.blank?
 
@@ -103,15 +105,28 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
         request_id: @options[:request_id]
       )
       raise StatusFetchError, "Could not fetch sender status #{uri}" if status.nil? || status.account_id != @account.id
-      break if @account.statuses.without_reblogs.distributable_visibility.limit(status_count).count >= status_count
+
+      if status.distributable? && !status.reblog? && statuses.exclude?(status)
+        fetched_statuses << status
+        break if statuses.size + fetched_statuses.size >= status_count
+      end
     end
 
-    @account.statuses.without_reblogs.distributable_visibility.reorder(id: :desc).limit(status_count).to_a
+    (statuses + fetched_statuses).uniq(&:id).sort_by(&:id).reverse.take(status_count)
   rescue StatusFetchError
     raise
   rescue StandardError => e
     Rails.logger.warn { "Unable to fetch recent posts for follow request from #{@account.acct}: #{e}" }
     raise StatusFetchError, e.message
+  end
+
+  def status_activity?(item)
+    return true if item.is_a?(String)
+    return false unless item.is_a?(Hash) && item['type'] == 'Create'
+
+    (as_array(item['to']) + as_array(item['cc'])).any? do |audience|
+      ActivityPub::TagManager.instance.public_collection?(value_or_id(audience))
+    end
   end
 
   def normalize_status_text(text)

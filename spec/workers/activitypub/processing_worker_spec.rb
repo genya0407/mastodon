@@ -30,20 +30,39 @@ RSpec.describe ActivityPub::ProcessingWorker do
 
     it 'rejects the follow request' do
       allow(ActivityPub::ProcessActivityService).to receive(:new)
-        .and_return(instance_double(ActivityPub::ProcessActivityService, call: nil))
+        .and_raise(ActivityPub::Activity::Follow::StatusFetchError)
 
-      described_class.within_sidekiq_retries_exhausted_block(
-        'args' => [account.id, body],
-        'error_class' => 'ActivityPub::Activity::Follow::StatusFetchError'
-      ) do
-        subject.perform(account.id, body)
-      end
+      expect do
+        described_class.within_sidekiq_retries_exhausted_block(
+          'args' => [account.id, body],
+          'error_class' => 'ActivityPub::Activity::Follow::StatusFetchError'
+        ) do
+          subject.perform(account.id, body)
+        end
+      end.to raise_error(ActivityPub::Activity::Follow::StatusFetchError)
 
       expect(ActivityPub::DeliveryWorker).to have_enqueued_sidekiq_job(
         match_json_values(type: 'Reject', object: include(type: 'Follow')),
         recipient.id,
         anything
       )
+    end
+
+    it 'does not reject if the follow request already exists' do
+      FollowRequest.create!(account: account, target_account: recipient, uri: 'foo')
+      allow(ActivityPub::ProcessActivityService).to receive(:new)
+        .and_raise(ActivityPub::Activity::Follow::StatusFetchError)
+
+      expect do
+        described_class.within_sidekiq_retries_exhausted_block(
+          'args' => [account.id, body],
+          'error_class' => 'ActivityPub::Activity::Follow::StatusFetchError'
+        ) do
+          subject.perform(account.id, body)
+        end
+      end.to raise_error(ActivityPub::Activity::Follow::StatusFetchError)
+
+      expect(ActivityPub::DeliveryWorker.jobs).to be_empty
     end
   end
 end

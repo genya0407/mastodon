@@ -9,15 +9,18 @@ class ActivityPub::ProcessingWorker
     next unless msg['error_class'] == 'ActivityPub::Activity::Follow::StatusFetchError'
 
     ActiveRecord::Base.connection_pool.with_connection do
-      actor_id, body = msg['args']
+      actor_id, body, _delivered_to_account_id, actor_type = msg['args']
       actor = Account.find_by(id: actor_id)
       json = JSON.parse(body)
-      next if actor.nil? || json['type'] != 'Follow' || json['actor'] != ActivityPub::TagManager.instance.uri_for(actor)
+      next if actor.nil? || (actor_type.present? && actor_type != 'Account') || json['type'] != 'Follow' || json['actor'] != ActivityPub::TagManager.instance.uri_for(actor)
 
       activity = ActivityPub::Activity.factory(json.with_indifferent_access, actor)
-      activity&.reject_follow_request_after_status_fetch_failure!
+      activity.reject_follow_request_after_status_fetch_failure! if activity.is_a?(ActivityPub::Activity::Follow)
     end
   rescue JSON::ParserError
+    nil
+  rescue StandardError => e
+    Rails.logger.error { "Failed to reject follow request after status fetch retries were exhausted: #{e}" }
     nil
   end
 
