@@ -90,12 +90,15 @@ RSpec.describe ActivityPub::Activity::Follow do
         end
 
         it 'rejects the follow without creating a follow request' do
-          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '1',
+          allow(Rails.logger).to receive(:warn)
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_ENABLED: 'true',
+                                AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '1',
                                 AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'other phrase, unwanted phrase' do
             expect { subject.perform }
               .to not_change { FollowRequest.count }
               .and change { ActivityPub::DeliveryWorker.jobs.size }.by(1)
           end
+          expect(Rails.logger).to have_received(:warn)
 
           expect(sender.requested?(recipient)).to be false
           expect(ActivityPub::DeliveryWorker).to have_enqueued_sidekiq_job(
@@ -134,6 +137,27 @@ RSpec.describe ActivityPub::Activity::Follow do
         end
       end
 
+      context 'when automatic rejection is disabled for trial operation' do
+        before do
+          recipient.update!(locked: true)
+          Fabricate(:status, account: sender, text: 'This contains an unwanted phrase.')
+        end
+
+        it 'logs a matching post but creates the follow request' do
+          allow(Rails.logger).to receive(:warn)
+
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_ENABLED: 'false',
+                                AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '1',
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+            expect { subject.perform }
+              .to change { FollowRequest.where(account: sender, target_account: recipient).count }.by(1)
+          end
+
+          expect(ActivityPub::DeliveryWorker.jobs).to be_empty
+          expect(Rails.logger).to have_received(:warn)
+        end
+      end
+
       context 'when the sender has fewer local statuses than the configured limit' do
         let(:fetch_service) { instance_double(ActivityPub::FetchRemoteStatusService) }
 
@@ -151,7 +175,8 @@ RSpec.describe ActivityPub::Activity::Follow do
             Fabricate(:status, account: sender, text: 'This post contains an unwanted phrase.')
           end
 
-          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_ENABLED: 'true',
+                                AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
                                 AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
             expect { subject.perform }
               .to not_change { FollowRequest.where(account: sender, target_account: recipient).count }
@@ -228,6 +253,36 @@ RSpec.describe ActivityPub::Activity::Follow do
           end
 
           expect(fetch_service).to_not have_received(:call)
+        end
+
+        it 'rejects when a successful outbox fetch yields fewer statuses than configured' do
+          allow(subject).to receive(:collection_items).and_return([[], 1])
+          allow(Rails.logger).to receive(:warn)
+
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_ENABLED: 'true',
+                                AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+            expect { subject.perform }
+              .to not_change { FollowRequest.where(account: sender, target_account: recipient).count }
+              .and change { ActivityPub::DeliveryWorker.jobs.size }.by(1)
+          end
+
+          expect(Rails.logger).to have_received(:warn)
+        end
+
+        it 'logs insufficient statuses without rejecting when disabled' do
+          allow(subject).to receive(:collection_items).and_return([[], 1])
+          allow(Rails.logger).to receive(:warn)
+
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_ENABLED: 'false',
+                                AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+            expect { subject.perform }
+              .to change { FollowRequest.where(account: sender, target_account: recipient).count }.by(1)
+          end
+
+          expect(ActivityPub::DeliveryWorker.jobs).to be_empty
+          expect(Rails.logger).to have_received(:warn)
         end
       end
     end

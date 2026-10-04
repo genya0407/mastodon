@@ -39,9 +39,11 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
 
     requires_follow_request = target_account.locked? || @account.silenced?
 
-    if requires_follow_request && reject_follow_request_for_status_content?(target_account)
-      reject_follow_request!(target_account)
-      return
+    if requires_follow_request
+      rejection_reason = follow_request_rejection_reason(target_account)
+      if rejection_reason
+        return if reject_follow_request_or_log_candidate!(target_account, rejection_reason)
+      end
     end
 
     follow_request = FollowRequest.create!(account: @account, target_account: target_account, uri: @json['id'])
@@ -63,8 +65,9 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
     target_account = account_from_uri(object_uri)
     return if target_account.nil? || !target_account.local?
     return if existing_follow_relationship?(target_account)
+    return unless target_account.locked? || @account.silenced?
 
-    reject_follow_request!(target_account)
+    reject_follow_request_or_log_candidate!(target_account, 'recent statuses could not be fetched')
   end
 
   private
@@ -74,18 +77,32 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
       Follow.exists?(account: @account, target_account: target_account)
   end
 
-  def reject_follow_request_for_status_content?(target_account)
+  def follow_request_rejection_reason(target_account)
     status_count = auto_reject_status_count
-    return false unless status_count.positive?
+    return unless status_count.positive?
 
     phrases = auto_reject_phrases
-    return false if phrases.empty?
+    return if phrases.empty?
 
     statuses = recent_distributable_statuses(status_count, target_account)
-    statuses.any? do |status|
+    return 'fewer recent statuses than configured' if statuses.size < status_count
+
+    match = statuses.any? do |status|
       status_text = normalize_status_text(Nokogiri::HTML5.fragment([status.spoiler_text, status.text].join("\n")).text)
       phrases.any? { |phrase| status_text.include?(phrase) }
     end
+    'a recent status contains a configured phrase' if match
+  end
+
+  def reject_follow_request_or_log_candidate!(target_account, reason)
+    enabled = ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_ENABLED', 'false') == 'true'
+    Rails.logger.warn do
+      "Follow request from #{@account.acct} to #{target_account.acct} is an automatic rejection candidate: #{reason} (AUTO_REJECT_FOLLOW_REQUEST_ENABLED=#{enabled})"
+    end
+    return false unless enabled
+
+    reject_follow_request!(target_account)
+    true
   end
 
   def auto_reject_status_count
