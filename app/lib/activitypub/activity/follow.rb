@@ -28,9 +28,16 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
       return
     end
 
+    requires_follow_request = target_account.locked? || @account.silenced?
+
+    if requires_follow_request && reject_follow_request_for_status_content?(target_account)
+      reject_follow_request!(target_account)
+      return
+    end
+
     follow_request = FollowRequest.create!(account: @account, target_account: target_account, uri: @json['id'])
 
-    if target_account.locked? || @account.silenced?
+    if requires_follow_request
       LocalNotificationWorker.perform_async(target_account.id, follow_request.id, 'FollowRequest', 'follow_request')
     else
       AuthorizeFollowService.new.call(@account, target_account)
@@ -41,5 +48,30 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
   def reject_follow_request!(target_account)
     json = serialize_payload(FollowRequest.new(account: @account, target_account: target_account, uri: @json['id']), ActivityPub::RejectFollowSerializer).to_json
     ActivityPub::DeliveryWorker.perform_async(json, target_account.id, @account.inbox_url)
+  end
+
+  private
+
+  def reject_follow_request_for_status_content?(target_account)
+    user = target_account.user
+    return false if user.nil?
+
+    status_count = user.settings['auto_reject_follow_request_status_count'].to_i
+    return false unless status_count.positive?
+
+    phrases = user.settings['auto_reject_follow_request_phrases'].to_s.lines.map(&:strip).reject(&:blank?)
+    return false if phrases.empty?
+
+    normalized_phrases = phrases.map { |phrase| normalize_status_text(phrase) }
+    statuses = @account.statuses.without_reblogs.distributable_visibility.reorder(id: :desc).limit([status_count, 100].min)
+
+    statuses.pluck(:text, :spoiler_text).any? do |text, spoiler_text|
+      status_text = normalize_status_text(Nokogiri::HTML5.fragment([spoiler_text, text].join("\n")).text)
+      normalized_phrases.any? { |phrase| status_text.include?(phrase) }
+    end
+  end
+
+  def normalize_status_text(text)
+    text.unicode_normalize(:nfkc).downcase
   end
 end

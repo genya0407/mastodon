@@ -19,6 +19,18 @@
   .fields-group
     = f.input :unlocked, as: :boolean, wrapper: :with_label
 
+  = f.simple_fields_for :settings, current_user.settings do |ff|
+    .fields-group
+      = ff.input :auto_reject_follow_request_status_count,
+                 as: :integer,
+                 hint: t('privacy.auto_reject_follow_request_status_count_hint'),
+                 input_html: { min: 0, max: 100 },
+                 wrapper: :with_label
+      = ff.input :auto_reject_follow_request_phrases,
+                 as: :text,
+                 hint: t('privacy.auto_reject_follow_request_phrases_hint'),
+                 wrapper: :with_label
+
   %h2= t('privacy.search')
 
   %p.lead= t('privacy.search_hint_html')

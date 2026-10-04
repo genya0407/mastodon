@@ -230,6 +230,8 @@ ja:
         setting_contrast: コントラスト
         setting_default_language: 投稿する言語
         setting_default_privacy: 投稿の公開範囲
+        setting_auto_reject_follow_request_status_count: 確認する直近の投稿数
+        setting_auto_reject_follow_request_phrases: フォローリクエストを却下する文言
         setting_default_quote_policy: 引用できるユーザー
         setting_default_sensitive: メディアを常に閲覧注意としてマークする
         setting_delete_modal: 投稿を削除する前に警告する

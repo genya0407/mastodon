@@ -248,6 +248,8 @@ en:
         setting_contrast: Contrast
         setting_default_language: Posting language
         setting_default_privacy: Posting visibility
+        setting_auto_reject_follow_request_status_count: Check recent posts
+        setting_auto_reject_follow_request_phrases: Phrases that reject follow requests
         setting_default_quote_policy: Who can quote
         setting_default_sensitive: Always mark media as sensitive
         setting_delete_modal: Warn me before deleting a post

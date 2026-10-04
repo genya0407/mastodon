@@ -16,6 +16,8 @@ class UserSettings
   setting :default_sensitive, default: false
   setting :default_privacy, default: nil, in: %w(public unlisted private)
   setting :default_quote_policy, default: 'public', in: %w(public followers nobody)
+  setting :auto_reject_follow_request_status_count, default: '0'
+  setting :auto_reject_follow_request_phrases, default: ''
   setting :email_subscriptions, default: false
 
   setting_inverse_alias :indexable, :noindex

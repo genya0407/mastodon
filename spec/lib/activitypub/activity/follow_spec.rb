@@ -82,6 +82,36 @@ RSpec.describe ActivityPub::Activity::Follow do
           expect(sender.follow_requests.find_by(target_account: recipient).uri).to eq 'foo'
         end
       end
+
+      context 'when locked account automatically rejects matching recent posts' do
+        before do
+          recipient.update!(locked: true)
+          recipient.user.update!(settings_attributes: {
+            auto_reject_follow_request_status_count: '1',
+            auto_reject_follow_request_phrases: 'unwanted phrase',
+          })
+          Fabricate(:status, account: sender, text: '<p>This contains an unwanted phrase.</p>')
+        end
+
+        it 'rejects the follow without creating a follow request' do
+          expect { subject.perform }
+            .to not_change { FollowRequest.count }
+            .and change { ActivityPub::DeliveryWorker.jobs.size }.by(1)
+
+          expect(sender.requested?(recipient)).to be false
+          expect(ActivityPub::DeliveryWorker).to have_enqueued_sidekiq_job(
+            match_json_values(type: 'Reject', object: include(type: 'Follow')),
+            recipient.id,
+            anything
+          )
+        end
+
+        it 'does not reject based on posts older than the configured limit' do
+          Fabricate(:status, account: sender, text: 'recent post')
+          expect { subject.perform }
+            .to change { FollowRequest.where(account: sender, target_account: recipient).count }.by(1)
+        end
+      end
     end
 
     context 'when recipient blocks sender' do
