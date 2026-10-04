@@ -6,13 +6,21 @@ class ActivityPub::ProcessingWorker
   sidekiq_options queue: 'ingress', backtrace: true, retry: 8
 
   sidekiq_retries_exhausted do |msg, _exception|
-    next unless msg['error_class'] == 'ActivityPub::Activity::Follow::StatusFetchError'
+    ActivityPub::ProcessingWorker.reject_follow_request_after_status_fetch_failure(msg)
+  end
+
+  def self.reject_follow_request_after_status_fetch_failure(msg)
+    return unless msg['error_class'] == 'ActivityPub::Activity::Follow::StatusFetchError'
+
+    actor_id, body, _delivered_to_account_id, actor_type = msg['args']
+    return if actor_type.present? && actor_type != 'Account'
 
     ActiveRecord::Base.connection_pool.with_connection do
-      actor_id, body, _delivered_to_account_id, actor_type = msg['args']
       actor = Account.find_by(id: actor_id)
       json = JSON.parse(body)
-      next if actor.nil? || (actor_type.present? && actor_type != 'Account') || json['type'] != 'Follow' || json['actor'] != ActivityPub::TagManager.instance.uri_for(actor)
+      return if actor.nil?
+      return unless json['type'] == 'Follow'
+      return unless json['actor'] == ActivityPub::TagManager.instance.uri_for(actor)
 
       activity = ActivityPub::Activity.factory(json.with_indifferent_access, actor)
       activity.reject_follow_request_after_status_fetch_failure! if activity.is_a?(ActivityPub::Activity::Follow)

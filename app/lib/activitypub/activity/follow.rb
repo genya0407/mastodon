@@ -3,6 +3,13 @@
 class ActivityPub::Activity::Follow < ActivityPub::Activity
   include Payloadable
 
+  DEFAULT_STATUS_COUNT = 5
+  MAX_STATUS_COUNT = 100
+  OUTBOX_ITEMS_PER_STATUS = 5
+  MIN_OUTBOX_PAGES = 5
+
+  private_constant :DEFAULT_STATUS_COUNT, :MAX_STATUS_COUNT, :OUTBOX_ITEMS_PER_STATUS, :MIN_OUTBOX_PAGES
+
   class StatusFetchError < StandardError; end
 
   def perform
@@ -55,15 +62,20 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
   def reject_follow_request_after_status_fetch_failure!
     target_account = account_from_uri(object_uri)
     return if target_account.nil? || !target_account.local?
-    return if FollowRequest.exists?(account: @account, target_account: target_account) || Follow.exists?(account: @account, target_account: target_account)
+    return if existing_follow_relationship?(target_account)
 
     reject_follow_request!(target_account)
   end
 
   private
 
+  def existing_follow_relationship?(target_account)
+    FollowRequest.exists?(account: @account, target_account: target_account) ||
+      Follow.exists?(account: @account, target_account: target_account)
+  end
+
   def reject_follow_request_for_status_content?(target_account)
-    status_count = [ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT', '5').to_i, 100].min
+    status_count = [ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT', DEFAULT_STATUS_COUNT.to_s).to_i, MAX_STATUS_COUNT].min
     return false unless status_count.positive?
 
     phrases = ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_PHRASES', '').split(',').map(&:strip).reject(&:blank?)
@@ -81,10 +93,10 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
     statuses = @account.statuses.without_reblogs.distributable_visibility.reorder(id: :desc).limit(status_count).to_a
     return statuses if statuses.size >= status_count
 
-    item_limit = [status_count * 5, 100].min
+    item_limit = [status_count * OUTBOX_ITEMS_PER_STATUS, MAX_STATUS_COUNT].min
     items, = collection_items(
       @account.outbox_url,
-      max_pages: [status_count, 5].max,
+      max_pages: [status_count, MIN_OUTBOX_PAGES].max,
       max_items: item_limit,
       reference_uri: @account.uri,
       on_behalf_of: target_account
@@ -92,6 +104,7 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
     raise StatusFetchError, 'Could not fetch the sender outbox' if items.nil?
 
     fetched_statuses = []
+    failed_fetch = false
     items.each do |item|
       next unless status_activity?(item)
 
@@ -104,13 +117,19 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
         expected_actor_uri: @account.uri,
         request_id: @options[:request_id]
       )
-      raise StatusFetchError, "Could not fetch sender status #{uri}" if status.nil? || status.account_id != @account.id
+      if status.nil?
+        failed_fetch = true
+        next
+      end
+      raise StatusFetchError, "Fetched sender status #{uri} belongs to another account" if status.account_id != @account.id
 
       if status.distributable? && !status.reblog? && statuses.exclude?(status)
         fetched_statuses << status
         break if statuses.size + fetched_statuses.size >= status_count
       end
     end
+
+    raise StatusFetchError, 'Could not fetch enough recent sender statuses' if failed_fetch && statuses.size + fetched_statuses.size < status_count
 
     (statuses + fetched_statuses).uniq(&:id).sort_by(&:id).reverse.take(status_count)
   rescue StatusFetchError

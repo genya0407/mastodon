@@ -183,6 +183,44 @@ RSpec.describe ActivityPub::Activity::Follow do
 
           expect(FollowRequest.where(account: sender, target_account: recipient)).to be_empty
         end
+
+        it 'raises a retryable error when the sender outbox cannot be fetched' do
+          allow(subject).to receive(:collection_items).and_return([nil, 0])
+
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+            expect { subject.perform }
+              .to raise_error(ActivityPub::Activity::Follow::StatusFetchError)
+          end
+        end
+
+        it 'raises a retryable error when a public outbox item has no URI' do
+          allow(subject).to receive(:collection_items).and_return([
+            [{ 'type' => 'Create', 'to' => ['Public'] }],
+            1,
+          ])
+
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+            expect { subject.perform }
+              .to raise_error(ActivityPub::Activity::Follow::StatusFetchError)
+          end
+        end
+
+        it 'raises a retryable error when a fetched status belongs to another account' do
+          allow(fetch_service).to receive(:call).and_return(Fabricate(:status, account: Fabricate(:account)))
+
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+            expect { subject.perform }
+              .to raise_error(ActivityPub::Activity::Follow::StatusFetchError)
+          end
+        end
+
+        it 'skips non-Create and non-public outbox items' do
+          expect(subject.send(:status_activity?, 'type' => 'Announce')).to be false
+          expect(subject.send(:status_activity?, 'type' => 'Create', 'to' => ['https://example.com/followers'])).to be false
+        end
       end
     end
 
