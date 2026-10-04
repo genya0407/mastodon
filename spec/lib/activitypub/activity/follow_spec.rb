@@ -135,17 +135,15 @@ RSpec.describe ActivityPub::Activity::Follow do
       end
 
       context 'when the sender has fewer local statuses than the configured limit' do
-        before do
-          recipient.update!(locked: true)
-          Fabricate(:status, account: sender, text: 'A recent post without a match')
-        end
-
         let(:fetch_service) { instance_double(ActivityPub::FetchRemoteStatusService) }
 
         before do
+          recipient.update!(locked: true)
+          Fabricate(:status, account: sender, text: 'A recent post without a match')
           allow(subject).to receive(:collection_items)
             .and_return([['https://example.com/status/2'], 1])
           allow(ActivityPub::FetchRemoteStatusService).to receive(:new).and_return(fetch_service)
+          allow(fetch_service).to receive(:call)
         end
 
         it 'fetches the sender status before checking its content' do
@@ -218,8 +216,18 @@ RSpec.describe ActivityPub::Activity::Follow do
         end
 
         it 'skips non-Create and non-public outbox items' do
-          expect(subject.send(:status_activity?, 'type' => 'Announce')).to be false
-          expect(subject.send(:status_activity?, 'type' => 'Create', 'to' => ['https://example.com/followers'])).to be false
+          allow(subject).to receive(:collection_items).and_return([[
+            { 'type' => 'Announce' },
+            { 'type' => 'Create', 'to' => ['https://example.com/followers'] },
+          ], 1])
+
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+            expect { subject.perform }
+              .to change { FollowRequest.where(account: sender, target_account: recipient).count }.by(1)
+          end
+
+          expect(fetch_service).to_not have_received(:call)
         end
       end
     end

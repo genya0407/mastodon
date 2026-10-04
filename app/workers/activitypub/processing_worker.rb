@@ -15,15 +15,20 @@ class ActivityPub::ProcessingWorker
     actor_id, body, _delivered_to_account_id, actor_type = msg['args']
     return if actor_type.present? && actor_type != 'Account'
 
-    ActiveRecord::Base.connection_pool.with_connection do
-      actor = Account.find_by(id: actor_id)
-      json = JSON.parse(body)
-      return if actor.nil?
-      return unless json['type'] == 'Follow'
-      return unless json['actor'] == ActivityPub::TagManager.instance.uri_for(actor)
+    actor = ActiveRecord::Base.connection_pool.with_connection do
+      Account.find_by(id: actor_id)
+    end
+    return if actor.nil?
 
-      activity = ActivityPub::Activity.factory(json.with_indifferent_access, actor)
-      activity.reject_follow_request_after_status_fetch_failure! if activity.is_a?(ActivityPub::Activity::Follow)
+    json = JSON.parse(body)
+    return unless json['type'] == 'Follow'
+    return unless json['actor'] == ActivityPub::TagManager.instance.uri_for(actor)
+
+    activity = ActivityPub::Activity.factory(json.with_indifferent_access, actor)
+    return unless activity.is_a?(ActivityPub::Activity::Follow)
+
+    ActiveRecord::Base.connection_pool.with_connection do
+      activity.reject_follow_request_after_status_fetch_failure!
     end
   rescue JSON::ParserError
     nil

@@ -75,18 +75,29 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
   end
 
   def reject_follow_request_for_status_content?(target_account)
-    status_count = [ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT', DEFAULT_STATUS_COUNT.to_s).to_i, MAX_STATUS_COUNT].min
+    status_count = auto_reject_status_count
     return false unless status_count.positive?
 
-    phrases = ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_PHRASES', '').split(',').map(&:strip).reject(&:blank?)
+    phrases = auto_reject_phrases
     return false if phrases.empty?
 
     statuses = recent_distributable_statuses(status_count, target_account)
-    normalized_phrases = phrases.map { |phrase| normalize_status_text(phrase) }
     statuses.any? do |status|
       status_text = normalize_status_text(Nokogiri::HTML5.fragment([status.spoiler_text, status.text].join("\n")).text)
-      normalized_phrases.any? { |phrase| status_text.include?(phrase) }
+      phrases.any? { |phrase| status_text.include?(phrase) }
     end
+  end
+
+  def auto_reject_status_count
+    [ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT', DEFAULT_STATUS_COUNT.to_s).to_i, MAX_STATUS_COUNT].min
+  end
+
+  def auto_reject_phrases
+    ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_PHRASES', '')
+      .split(',')
+      .map(&:strip)
+      .reject(&:blank?)
+      .map { |phrase| normalize_status_text(phrase) }
   end
 
   def recent_distributable_statuses(status_count, target_account)
@@ -105,13 +116,19 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
 
     fetched_statuses = []
     failed_fetch = false
+    fetch_service = ActivityPub::FetchRemoteStatusService.new
     items.each do |item|
       next unless status_activity?(item)
 
       uri = value_or_id(item)
-      raise StatusFetchError, 'The sender outbox contains an item without a URI' if uri.blank?
+      if uri.blank?
+        failed_fetch = true
+        next
+      end
 
-      status = ActivityPub::FetchRemoteStatusService.new.call(
+      next if already_stored_status?(item, uri)
+
+      status = fetch_service.call(
         uri,
         on_behalf_of: target_account,
         expected_actor_uri: @account.uri,
@@ -146,6 +163,11 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
     (as_array(item['to']) + as_array(item['cc'])).any? do |audience|
       ActivityPub::TagManager.instance.public_collection?(value_or_id(audience))
     end
+  end
+
+  def already_stored_status?(item, uri)
+    status_uri = item.is_a?(Hash) ? value_or_id(item['object']) : uri
+    status_uri.present? && @account.statuses.exists?(uri: status_uri)
   end
 
   def normalize_status_text(text)
