@@ -132,6 +132,60 @@ RSpec.describe ActivityPub::Activity::Follow do
               .to change { FollowRequest.where(account: sender, target_account: recipient).count }.by(1)
           end
         end
+
+        context 'when the sender has fewer local statuses than the configured limit' do
+          before do
+            recipient.update!(locked: true)
+            Fabricate(:status, account: sender, text: 'A recent post without a match')
+          end
+
+          let(:fetch_service) { instance_double(ActivityPub::FetchRemoteStatusService) }
+          let(:fetched_status) { Fabricate(:status, account: sender, text: 'This post contains an unwanted phrase.') }
+
+          before do
+            allow(subject).to receive(:collection_items)
+              .and_return([['https://example.com/status/2'], 1])
+            allow(ActivityPub::FetchRemoteStatusService).to receive(:new).and_return(fetch_service)
+          end
+
+          it 'fetches the sender status before checking its content' do
+            allow(fetch_service).to receive(:call).and_return(fetched_status)
+
+            ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
+                                  AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+              expect { subject.perform }
+                .to not_change { FollowRequest.where(account: sender, target_account: recipient).count }
+            end
+
+            expect(fetch_service).to have_received(:call).with(
+              'https://example.com/status/2',
+              on_behalf_of: recipient,
+              expected_actor_uri: sender.uri,
+              request_id: nil
+            )
+            expect(ActivityPub::DeliveryWorker).to have_enqueued_sidekiq_job(
+              match_json_values(type: 'Reject', object: include(type: 'Follow')),
+              recipient.id,
+              anything
+            )
+          end
+
+          it 'rejects the follow request when the status cannot be fetched' do
+            allow(fetch_service).to receive(:call).and_return(nil)
+
+            ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '2',
+                                  AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+              expect { subject.perform }
+                .to not_change { FollowRequest.where(account: sender, target_account: recipient).count }
+            end
+
+            expect(ActivityPub::DeliveryWorker).to have_enqueued_sidekiq_job(
+              match_json_values(type: 'Reject', object: include(type: 'Follow')),
+              recipient.id,
+              anything
+            )
+          end
+        end
       end
     end
 

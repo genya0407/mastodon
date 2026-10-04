@@ -30,7 +30,7 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
 
     requires_follow_request = target_account.locked? || @account.silenced?
 
-    if requires_follow_request && reject_follow_request_for_status_content?
+    if requires_follow_request && reject_follow_request_for_status_content?(target_account)
       reject_follow_request!(target_account)
       return
     end
@@ -52,23 +52,57 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
 
   private
 
-  def reject_follow_request_for_status_content?
-    status_count = ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT', '5').to_i
+  def reject_follow_request_for_status_content?(target_account)
+    status_count = [ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT', '5').to_i, 100].min
     return false unless status_count.positive?
 
     phrases = ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_PHRASES', '').split(',').map(&:strip).reject(&:blank?)
     return false if phrases.empty?
 
-    normalized_phrases = phrases.map { |phrase| normalize_status_text(phrase) }
-    statuses = @account.statuses.without_reblogs.distributable_visibility.reorder(id: :desc).limit([status_count, 100].min)
+    statuses = recent_distributable_statuses(status_count, target_account)
+    return true if statuses.nil?
 
-    statuses.pluck(:text, :spoiler_text).any? do |text, spoiler_text|
-      status_text = normalize_status_text(Nokogiri::HTML5.fragment([spoiler_text, text].join("\n")).text)
+    normalized_phrases = phrases.map { |phrase| normalize_status_text(phrase) }
+    statuses.any? do |status|
+      status_text = normalize_status_text(Nokogiri::HTML5.fragment([status.spoiler_text, status.text].join("\n")).text)
       normalized_phrases.any? { |phrase| status_text.include?(phrase) }
     end
+  end
+
+  def recent_distributable_statuses(status_count, target_account)
+    statuses = @account.statuses.without_reblogs.distributable_visibility.reorder(id: :desc).limit(status_count).to_a
+    return statuses if statuses.size >= status_count
+
+    items, = collection_items(
+      @account.outbox_url,
+      max_pages: status_count,
+      max_items: status_count,
+      reference_uri: @account.uri,
+      on_behalf_of: target_account
+    )
+    return if items.nil?
+
+    items.each do |item|
+      uri = value_or_id(item)
+      return if uri.blank?
+
+      status = ActivityPub::FetchRemoteStatusService.new.call(
+        uri,
+        on_behalf_of: target_account,
+        expected_actor_uri: @account.uri,
+        request_id: @options[:request_id]
+      )
+      return if status.nil? || status.account_id != @account.id
+    end
+
+    @account.statuses.without_reblogs.distributable_visibility.reorder(id: :desc).limit(status_count).to_a
+  rescue StandardError => e
+    Rails.logger.warn { "Unable to fetch recent posts for follow request from #{@account.acct}: #{e}" }
+    nil
   end
 
   def normalize_status_text(text)
     text.unicode_normalize(:nfkc).downcase
   end
+
 end
