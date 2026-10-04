@@ -3,6 +3,8 @@
 class ActivityPub::Activity::Follow < ActivityPub::Activity
   include Payloadable
 
+  class StatusFetchError < StandardError; end
+
   def perform
     target_account = account_from_uri(object_uri)
 
@@ -50,6 +52,14 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
     ActivityPub::DeliveryWorker.perform_async(json, target_account.id, @account.inbox_url)
   end
 
+  def reject_follow_request_after_status_fetch_failure!
+    target_account = account_from_uri(object_uri)
+    return if target_account.nil? || !target_account.local?
+    return if FollowRequest.exists?(account: @account, target_account: target_account) || Follow.exists?(account: @account, target_account: target_account)
+
+    reject_follow_request!(target_account)
+  end
+
   private
 
   def reject_follow_request_for_status_content?(target_account)
@@ -80,11 +90,11 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
       reference_uri: @account.uri,
       on_behalf_of: target_account
     )
-    return if items.nil?
+    raise StatusFetchError, 'Could not fetch the sender outbox' if items.nil?
 
     items.each do |item|
       uri = value_or_id(item)
-      return if uri.blank?
+      raise StatusFetchError, 'The sender outbox contains an item without a URI' if uri.blank?
 
       status = ActivityPub::FetchRemoteStatusService.new.call(
         uri,
@@ -92,17 +102,19 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
         expected_actor_uri: @account.uri,
         request_id: @options[:request_id]
       )
-      return if status.nil? || status.account_id != @account.id
+      raise StatusFetchError, "Could not fetch sender status #{uri}" if status.nil? || status.account_id != @account.id
+      break if @account.statuses.without_reblogs.distributable_visibility.limit(status_count).count >= status_count
     end
 
     @account.statuses.without_reblogs.distributable_visibility.reorder(id: :desc).limit(status_count).to_a
+  rescue StatusFetchError
+    raise
   rescue StandardError => e
     Rails.logger.warn { "Unable to fetch recent posts for follow request from #{@account.acct}: #{e}" }
-    nil
+    raise StatusFetchError, e.message
   end
 
   def normalize_status_text(text)
     text.unicode_normalize(:nfkc).downcase
   end
-
 end
