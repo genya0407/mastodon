@@ -30,7 +30,7 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
 
     requires_follow_request = target_account.locked? || @account.silenced?
 
-    if requires_follow_request && reject_follow_request_for_status_content?(target_account)
+    if requires_follow_request && reject_follow_request_for_status_content?
       reject_follow_request!(target_account)
       return
     end
@@ -52,14 +52,11 @@ class ActivityPub::Activity::Follow < ActivityPub::Activity
 
   private
 
-  def reject_follow_request_for_status_content?(target_account)
-    user = target_account.user
-    return false if user.nil?
-
-    status_count = user.settings['auto_reject_follow_request_status_count'].to_i
+  def reject_follow_request_for_status_content?
+    status_count = ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT', '5').to_i
     return false unless status_count.positive?
 
-    phrases = user.settings['auto_reject_follow_request_phrases'].to_s.lines.map(&:strip).reject(&:blank?)
+    phrases = ENV.fetch('AUTO_REJECT_FOLLOW_REQUEST_PHRASES', '').split(',').map(&:strip).reject(&:blank?)
     return false if phrases.empty?
 
     normalized_phrases = phrases.map { |phrase| normalize_status_text(phrase) }

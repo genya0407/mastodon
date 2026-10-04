@@ -86,17 +86,16 @@ RSpec.describe ActivityPub::Activity::Follow do
       context 'when locked account automatically rejects matching recent posts' do
         before do
           recipient.update!(locked: true)
-          recipient.user.update!(settings_attributes: {
-            auto_reject_follow_request_status_count: '1',
-            auto_reject_follow_request_phrases: 'unwanted phrase',
-          })
           Fabricate(:status, account: sender, text: '<p>This contains an unwanted phrase.</p>')
         end
 
         it 'rejects the follow without creating a follow request' do
-          expect { subject.perform }
-            .to not_change { FollowRequest.count }
-            .and change { ActivityPub::DeliveryWorker.jobs.size }.by(1)
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '1',
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'other phrase, unwanted phrase' do
+            expect { subject.perform }
+              .to not_change { FollowRequest.count }
+              .and change { ActivityPub::DeliveryWorker.jobs.size }.by(1)
+          end
 
           expect(sender.requested?(recipient)).to be false
           expect(ActivityPub::DeliveryWorker).to have_enqueued_sidekiq_job(
@@ -108,8 +107,30 @@ RSpec.describe ActivityPub::Activity::Follow do
 
         it 'does not reject based on posts older than the configured limit' do
           Fabricate(:status, account: sender, text: 'recent post')
-          expect { subject.perform }
-            .to change { FollowRequest.where(account: sender, target_account: recipient).count }.by(1)
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: '1',
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+            expect { subject.perform }
+              .to change { FollowRequest.where(account: sender, target_account: recipient).count }.by(1)
+          end
+        end
+
+        it 'uses the default empty phrase list when not configured' do
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: nil,
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: nil do
+            expect { subject.perform }
+              .to change { FollowRequest.where(account: sender, target_account: recipient).count }.by(1)
+          end
+        end
+
+        it 'checks five posts by default' do
+          Fabricate(:status, account: sender, text: 'unwanted phrase')
+          5.times { Fabricate(:status, account: sender, text: 'recent post') }
+
+          ClimateControl.modify AUTO_REJECT_FOLLOW_REQUEST_STATUS_COUNT: nil,
+                                AUTO_REJECT_FOLLOW_REQUEST_PHRASES: 'unwanted phrase' do
+            expect { subject.perform }
+              .to change { FollowRequest.where(account: sender, target_account: recipient).count }.by(1)
+          end
         end
       end
     end
