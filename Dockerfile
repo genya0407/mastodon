@@ -408,6 +408,12 @@ RUN \
   # Set Mastodon user as owner of tmp folder
   chown -R mastodon:mastodon /opt/mastodon/tmp;
 
+# https://emudhra.we-have-a-problem.com/
+RUN apt-get update; \
+  apt-get dist-upgrade -yq; \
+  apt-get upgrade -y --no-install-recommends \
+  ca-certificates
+
 # Set the running user for resulting container
 USER mastodon
 # Expose default Puma ports
